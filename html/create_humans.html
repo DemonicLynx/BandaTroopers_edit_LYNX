@@ -33,6 +33,19 @@
 		<input type="radio" class="radioButton" name="mob_status" value="burst"> Burst
 		<br><br>
 
+		<!-- DemonicLynx for BandaMarines - START: explicit squad assignment for Create Humans -->
+		<label>
+			<input type="checkbox" id="assign_squad" name="assign_squad" value="1" onchange="toggleSquadSelection()">
+			Assign squad to spawned NPCs
+		</label>
+		<br>
+		<select id="squad_ref" name="squad_ref" style="width:98%" disabled>
+			/* squad options */
+		</select>
+		<br>
+		<small>Leave unchecked to preserve the preset faction without assigning a squad.</small>
+		<br><br>
+		<!-- DemonicLynx for BandaMarines - END -->
 
 		Search for equipment and skills: <br>
 		<input type="text" name="filter" value="" onkeypress="submitFirst(event)" style="width:280px"> <input
@@ -47,6 +60,16 @@
 		var create_humans_list = document.spawner.create_humans_list;
 		var object_paths = null /* object types */;
 		var objects = object_paths == null ? new Array() : object_paths.split(";");
+		// DemonicLynx for BandaMarines - START: enable squad dropdown only after explicit confirmation
+		var assign_squad = document.getElementById("assign_squad");
+		var squad_selector = document.getElementById("squad_ref");
+
+		function toggleSquadSelection() {
+			squad_selector.disabled = !assign_squad.checked;
+		}
+
+		toggleSquadSelection();
+		// DemonicLynx for BandaMarines - END
 
 		document.spawner.filter.focus();
 		populateList();
