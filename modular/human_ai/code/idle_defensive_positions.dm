@@ -1,7 +1,8 @@
 // DemonicLynx for BandaMarines
 #define HUMAN_AI_IDLE_CLUSTER_RADIUS 1
 #define HUMAN_AI_IDLE_CLUSTER_SIZE 3
-#define HUMAN_AI_IDLE_POSITION_RADIUS 6
+// DemonicLynx for BandaMarines
+#define HUMAN_AI_IDLE_POSITION_RADIUS 3
 #define HUMAN_AI_IDLE_POSITION_CAPACITY 2
 #define HUMAN_AI_IDLE_RECHECK_DELAY 5 SECONDS
 
@@ -10,6 +11,13 @@
 	var/turf/idle_defensive_position
 	/// Prevents settled AI from repeatedly re-evaluating the same local formation.
 	var/idle_defensive_recheck_at = 0
+	// DemonicLynx for BandaMarines
+	/// Passable objects whose turf is valid for traversal but never for an idle defensive post.
+	var/static/list/idle_defensive_position_forbidden_types = list(
+		/obj/structure/machinery,
+		/obj/structure/closet,
+		/obj/structure/bed,
+	)
 
 /// Returns whether routine idle movement is safe without displacing a higher-priority behavior.
 /datum/human_ai_brain/proc/can_seek_idle_defensive_position()
@@ -131,9 +139,57 @@
 	for(var/atom/movable/obstacle as anything in candidate.contents)
 		if(ignore_owner && obstacle == tied_human)
 			continue
-		if(obstacle.density)
+		// DemonicLynx for BandaMarines
+		if(obstacle.density || is_type_in_list(obstacle, idle_defensive_position_forbidden_types))
 			return TRUE
 	return FALSE
+
+// DemonicLynx for BandaMarines
+/// Returns whether an idle movement step would enter any shutter, including an open non-dense one.
+/datum/human_ai_brain/proc/idle_defensive_step_has_shutter(turf/candidate)
+	return candidate && (locate(/obj/structure/machinery/door/poddoor/shutters) in candidate)
+
+// DemonicLynx for BandaMarines
+/// Takes one bounded idle-only step without letting generic navigation route through a shutter.
+/datum/human_ai_brain/proc/move_to_idle_defensive_position(turf/destination)
+	if(!has_valid_tied_human() || !destination)
+		return FALSE
+
+	var/current_distance = get_dist(tied_human, destination)
+	if(!current_distance)
+		return TRUE
+	if(current_distance == 1)
+		if(idle_defensive_step_has_shutter(destination))
+			return FALSE
+		return try_adjacent_move_to_turf(destination)
+
+	var/preferred_direction = get_dir(tied_human, destination)
+	var/turf/best_step
+	var/list/best_interactions
+	var/best_distance = INFINITY
+	for(var/direction in GLOB.cardinals)
+		if(!(direction & preferred_direction))
+			continue
+
+		var/turf/next_turf = get_step(tied_human, direction)
+		if(!next_turf || idle_defensive_step_has_shutter(next_turf))
+			continue
+
+		var/list/interactions = get_adjacent_move_interactions(next_turf)
+		if(isnull(interactions))
+			continue
+
+		var/next_distance = get_dist(next_turf, destination)
+		if(next_distance > current_distance || next_distance >= best_distance)
+			continue
+
+		best_distance = next_distance
+		best_step = next_turf
+		best_interactions = interactions
+
+	if(!best_step)
+		return FALSE
+	return complete_adjacent_move_to_turf(best_step, TRUE, best_interactions)
 
 /// Keeps non-leaders close enough to rejoin their squad when its anchor moves away.
 /datum/human_ai_brain/proc/idle_position_is_with_squad()
@@ -177,7 +233,8 @@
 			return ONGOING_ACTION_COMPLETED
 
 	if(get_dist(brain.tied_human, destination) > 0)
-		if(!brain.move_to_next_turf(destination))
+		// DemonicLynx for BandaMarines
+		if(!brain.move_to_idle_defensive_position(destination))
 			return ONGOING_ACTION_COMPLETED
 		return ONGOING_ACTION_UNFINISHED
 

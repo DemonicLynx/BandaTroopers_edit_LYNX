@@ -22,6 +22,12 @@
 /datum/ai_action/treat_ally/trigger_action()
 	. = ..()
 
+	// DemonicLynx for BandaMarines
+	var/should_fire_offscreen = (brain.target_turf && !COOLDOWN_FINISHED(brain, fire_offscreen))
+	if(brain.current_target || should_fire_offscreen)
+		brain.lose_injured_ally()
+		return ONGOING_ACTION_COMPLETED
+
 	if(brain.healing_someone)
 		return ONGOING_ACTION_UNFINISHED
 
@@ -31,8 +37,7 @@
 			brain.lose_injured_ally()
 			return ONGOING_ACTION_COMPLETED
 
-	var/should_fire_offscreen = (brain.target_turf && !COOLDOWN_FINISHED(brain, fire_offscreen))
-	if(brain.current_target || should_fire_offscreen || !length(brain.equipment_map[HUMAN_AI_HEALTHITEMS]))
+	if(!length(brain.equipment_map[HUMAN_AI_HEALTHITEMS]))
 		brain.lose_injured_ally()
 		return ONGOING_ACTION_COMPLETED
 

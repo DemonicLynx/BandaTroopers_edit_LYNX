@@ -69,6 +69,9 @@
 
 	/// Are we currently treating someone?
 	var/healing_someone = FALSE
+	// DemonicLynx for BandaMarines
+	/// Incremented whenever treatment starts or combat cancels it, preventing delayed medical work from resuming.
+	var/treatment_generation = 0
 
 	/// Reference for found injured ally
 	var/mob/living/carbon/human/found_injured_ally
@@ -369,46 +372,119 @@
 /datum/human_ai_brain/proc/clear_treatment_stacks()
 	cant_be_treated_stacks = 0
 
+// DemonicLynx for BandaMarines
+/// Releases medical action slots and safely stows held medicine as soon as combat begins.
+// SS220 EDIT - START: combat takes priority over both queued and sleeping treatment actions
+/datum/human_ai_brain/proc/cancel_treatment_for_combat()
+	var/has_treatment_action = FALSE
+	for(var/datum/ai_action/ongoing_action as anything in ongoing_actions)
+		if(istype(ongoing_action, /datum/ai_action/treat_ally) || istype(ongoing_action, /datum/ai_action/treat_self))
+			has_treatment_action = TRUE
+			break
+	if(!healing_someone && !found_injured_ally && !has_treatment_action)
+		return
+
+	treatment_generation++
+	healing_someone = FALSE
+	lose_injured_ally()
+
+	for(var/datum/ai_action/ongoing_action as anything in ongoing_actions.Copy())
+		if(!istype(ongoing_action, /datum/ai_action/treat_ally) && !istype(ongoing_action, /datum/ai_action/treat_self))
+			continue
+		ongoing_actions -= ongoing_action
+		qdel(ongoing_action)
+
+	for(var/obj/item/held_item as anything in tied_human.get_hands())
+		if(!held_item || !(held_item in equipment_map[HUMAN_AI_HEALTHITEMS]))
+			continue
+		return_health_item(held_item)
+
+/// A delayed treatment step may proceed only while it still owns the active generation.
+/datum/human_ai_brain/proc/treatment_can_continue(treatment_id, mob/living/carbon/human/target)
+	return (treatment_id == treatment_generation) && healing_someone && has_valid_tied_human() && !current_target && !QDELETED(target) && (target.stat != DEAD)
+
+/// Waits for the medical action and restores its item if combat invalidated this treatment meanwhile.
+/datum/human_ai_brain/proc/wait_for_treatment(obj/item/heal_item, mob/living/carbon/human/target, treatment_id)
+	sleep(short_action_delay * action_delay_mult)
+	if(treatment_can_continue(treatment_id, target))
+		return TRUE
+	if(!QDELETED(heal_item))
+		return_health_item(heal_item)
+	if(treatment_id == treatment_generation)
+		healing_someone = FALSE
+	return FALSE
+// SS220 EDIT - END
+
 /datum/human_ai_brain/proc/start_healing(mob/living/carbon/human/target)
 	set waitfor = FALSE
 
+	// DemonicLynx for BandaMarines
+	var/treatment_id = ++treatment_generation // SS220 EDIT: identify this asynchronous treatment chain
 	healing_someone = TRUE
 	. = FALSE // if . is TRUE, some form of healing has been done
+	if(!treatment_can_continue(treatment_id, target))
+		healing_someone = FALSE
+		return
 
 	// Prioritize brute, then bleed, then broken bones, then burn, then pain, then tox, then oxy.
 	if(target.getBruteLoss() > damage_problem_threshold)
-		if(brute_heal(target))
+		if(brute_heal(target, treatment_id))
 			. = TRUE
+	if(!treatment_can_continue(treatment_id, target))
+		if(treatment_id == treatment_generation)
+			healing_someone = FALSE
+		return
 
 	if(target.is_bleeding())
-		if(bleed_heal(target))
+		if(bleed_heal(target, treatment_id))
 			. = TRUE
+	if(!treatment_can_continue(treatment_id, target))
+		if(treatment_id == treatment_generation)
+			healing_someone = FALSE
+		return
 
 	// Doesn't support bone-healing chems
 	// DemonicLynx for BandaMarines
 	if(target_has_unsplinted_fracture(target)) // SS220 EDIT: only apply splints to untreated fractures
-		if(bone_heal(target))
+		if(bone_heal(target, treatment_id))
 			. = TRUE
+	if(!treatment_can_continue(treatment_id, target))
+		if(treatment_id == treatment_generation)
+			healing_someone = FALSE
+		return
 
 	if(target.getFireLoss() > damage_problem_threshold)
-		if(burn_heal(target))
+		if(burn_heal(target, treatment_id))
 			. = TRUE
+	if(!treatment_can_continue(treatment_id, target))
+		if(treatment_id == treatment_generation)
+			healing_someone = FALSE
+		return
 
 	// This has the issue of the AI taking multiple painkillers if high on pain, despite them not stacking. Not worth fixing atm
 	// DemonicLynx for BandaMarines
 	if(target.pain?.get_pain_percentage() > pain_percentage_threshold)
-		if(pain_heal(target))
+		if(pain_heal(target, treatment_id))
 			. = TRUE
+	if(!treatment_can_continue(treatment_id, target))
+		if(treatment_id == treatment_generation)
+			healing_someone = FALSE
+		return
 
 	if(target.getToxLoss() > damage_problem_threshold)
-		if(tox_heal(target))
+		if(tox_heal(target, treatment_id))
 			. = TRUE
+	if(!treatment_can_continue(treatment_id, target))
+		if(treatment_id == treatment_generation)
+			healing_someone = FALSE
+		return
 
 	if(target.getOxyLoss() > damage_problem_threshold)
-		if(oxy_heal(target))
+		if(oxy_heal(target, treatment_id))
 			. = TRUE
 
-	healing_someone = FALSE
+	if(treatment_id == treatment_generation)
+		healing_someone = FALSE
 
 // DemonicLynx for BandaMarines
 // SS220 EDIT - START: return reusable medical supplies to their source container before using fallback storage
@@ -424,8 +500,10 @@
 	return store_item(heal_item, storage_has_room(heal_item), HUMAN_AI_HEALTHITEMS, allow_same_turf = TRUE)
 // SS220 EDIT - END
 
-/datum/human_ai_brain/proc/brute_heal(mob/living/carbon/human/target)
+/datum/human_ai_brain/proc/brute_heal(mob/living/carbon/human/target, treatment_id)
 	. = FALSE
+	if(!treatment_can_continue(treatment_id, target))
+		return
 	var/obj/item/brute_heal
 	for(var/obj/item/heal_item as anything in equipment_map[HUMAN_AI_HEALTHITEMS])
 		if(is_type_in_list(heal_item, brute_heal_items) && heal_item.ai_can_use(tied_human, src, target))
@@ -445,7 +523,8 @@
 
 	. = TRUE
 	healing_someone = TRUE
-	sleep(short_action_delay * action_delay_mult)
+	if(!wait_for_treatment(brute_heal, target, treatment_id))
+		return FALSE
 	brute_heal.ai_use(tied_human, src, target)
 	if(QDELETED(brute_heal))
 		return
@@ -456,7 +535,9 @@
 	to_chat(world, "[tied_human.name] healed brute damage of [target.name] using [brute_heal].")
 #endif
 
-/datum/human_ai_brain/proc/bleed_heal(mob/living/carbon/human/target)
+/datum/human_ai_brain/proc/bleed_heal(mob/living/carbon/human/target, treatment_id)
+	if(!treatment_can_continue(treatment_id, target))
+		return FALSE
 	var/obj/item/bleed_heal
 	for(var/obj/item/heal_item as anything in equipment_map[HUMAN_AI_HEALTHITEMS])
 		if(is_type_in_list(heal_item, bleed_heal_items) && heal_item.ai_can_use(tied_human, src, target))
@@ -476,7 +557,8 @@
 
 	. = TRUE
 	healing_someone = TRUE
-	sleep(short_action_delay * action_delay_mult)
+	if(!wait_for_treatment(bleed_heal, target, treatment_id))
+		return FALSE
 	bleed_heal.ai_use(tied_human, src, target)
 	if(QDELETED(bleed_heal))
 		return
@@ -487,7 +569,9 @@
 	to_chat(world, "[tied_human.name] fixed bleeding of [target.name] using [bleed_heal].")
 #endif
 
-/datum/human_ai_brain/proc/bone_heal(mob/living/carbon/human/target)
+/datum/human_ai_brain/proc/bone_heal(mob/living/carbon/human/target, treatment_id)
+	if(!treatment_can_continue(treatment_id, target))
+		return FALSE
 	var/obj/item/bone_heal
 	for(var/obj/item/heal_item as anything in equipment_map[HUMAN_AI_HEALTHITEMS])
 		if(is_type_in_list(heal_item, bonebreak_heal_items) && heal_item.ai_can_use(tied_human, src, target))
@@ -507,7 +591,8 @@
 
 	. = TRUE
 	healing_someone = TRUE
-	sleep(short_action_delay * action_delay_mult)
+	if(!wait_for_treatment(bone_heal, target, treatment_id))
+		return FALSE
 	bone_heal.ai_use(tied_human, src, target)
 	if(QDELETED(bone_heal))
 		return
@@ -518,7 +603,9 @@
 	to_chat(world, "[tied_human.name] splinted a fracture of [target.name] using [bone_heal].")
 #endif
 
-/datum/human_ai_brain/proc/burn_heal(mob/living/carbon/human/target)
+/datum/human_ai_brain/proc/burn_heal(mob/living/carbon/human/target, treatment_id)
+	if(!treatment_can_continue(treatment_id, target))
+		return FALSE
 	var/obj/item/burn_heal
 	for(var/obj/item/heal_item as anything in equipment_map[HUMAN_AI_HEALTHITEMS])
 		if(is_type_in_list(heal_item, burn_heal_items) && heal_item.ai_can_use(tied_human, src, target))
@@ -538,7 +625,8 @@
 
 	. = TRUE
 	healing_someone = TRUE
-	sleep(short_action_delay * action_delay_mult)
+	if(!wait_for_treatment(burn_heal, target, treatment_id))
+		return FALSE
 	burn_heal.ai_use(tied_human, src, target)
 	if(QDELETED(burn_heal))
 		return
@@ -549,7 +637,9 @@
 	to_chat(world, "[tied_human.name] healed burn damage of [target.name] using [burn_heal].")
 #endif
 
-/datum/human_ai_brain/proc/pain_heal(mob/living/carbon/human/target)
+/datum/human_ai_brain/proc/pain_heal(mob/living/carbon/human/target, treatment_id)
+	if(!treatment_can_continue(treatment_id, target))
+		return FALSE
 	var/obj/item/painkiller
 	for(var/obj/item/heal_item as anything in equipment_map[HUMAN_AI_HEALTHITEMS])
 		if(is_type_in_list(heal_item, painkiller_items) && heal_item.ai_can_use(tied_human, src, target))
@@ -569,7 +659,8 @@
 
 	. = TRUE
 	healing_someone = TRUE
-	sleep(short_action_delay * action_delay_mult)
+	if(!wait_for_treatment(painkiller, target, treatment_id))
+		return FALSE
 	painkiller.ai_use(tied_human, src, target)
 	if(QDELETED(painkiller))
 		return
@@ -580,7 +671,9 @@
 	to_chat(world, "[tied_human.name] healed pain of [target.name] using [painkiller].")
 #endif
 
-/datum/human_ai_brain/proc/tox_heal(mob/living/carbon/human/target)
+/datum/human_ai_brain/proc/tox_heal(mob/living/carbon/human/target, treatment_id)
+	if(!treatment_can_continue(treatment_id, target))
+		return FALSE
 	var/obj/item/tox_heal
 	for(var/obj/item/heal_item as anything in equipment_map[HUMAN_AI_HEALTHITEMS])
 		if(is_type_in_list(heal_item, tox_heal_items) && heal_item.ai_can_use(tied_human, src, target))
@@ -600,7 +693,8 @@
 
 	. = TRUE
 	healing_someone = TRUE
-	sleep(short_action_delay * action_delay_mult)
+	if(!wait_for_treatment(tox_heal, target, treatment_id))
+		return FALSE
 	tox_heal.ai_use(tied_human, src, target)
 	if(QDELETED(tox_heal))
 		return
@@ -611,7 +705,9 @@
 	to_chat(world, "[tied_human.name] healed tox damage of [target.name] using [tox_heal].")
 #endif
 
-/datum/human_ai_brain/proc/oxy_heal(mob/living/carbon/human/target)
+/datum/human_ai_brain/proc/oxy_heal(mob/living/carbon/human/target, treatment_id)
+	if(!treatment_can_continue(treatment_id, target))
+		return FALSE
 	var/obj/item/oxy_heal
 	for(var/obj/item/heal_item as anything in equipment_map[HUMAN_AI_HEALTHITEMS])
 		if(is_type_in_list(heal_item, oxy_heal_items) && heal_item.ai_can_use(tied_human, src, target))
@@ -631,7 +727,8 @@
 
 	. = TRUE
 	healing_someone = TRUE
-	sleep(short_action_delay * action_delay_mult)
+	if(!wait_for_treatment(oxy_heal, target, treatment_id))
+		return FALSE
 	oxy_heal.ai_use(tied_human, src, target)
 	if(QDELETED(oxy_heal))
 		healing_someone = FALSE

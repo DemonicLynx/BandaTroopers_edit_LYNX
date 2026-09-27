@@ -21,7 +21,9 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 	var/friendly_throw_check_range = 3 // SS220 EDIT: configurable friendly check range for grenade throws
 
 	/// Distance for view checks
-	var/view_distance = 6
+	// DemonicLynx for BandaMarines
+	// var/view_distance = 6
+	var/view_distance = 7 // SS220 EDIT: regular Human AI detects enemies up to seven tiles away
 
 	/// Should we limit our FOV in case view_distance is more than 7
 	var/scope_vision = TRUE
@@ -204,6 +206,8 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 		set_target(get_target())
 
 	if(current_target)
+		// DemonicLynx for BandaMarines
+		cancel_treatment_for_combat() // SS220 EDIT: a confirmed hostile target immediately outranks medical work
 		enter_combat()
 
 	if(!iszombie(tied_human) && should_run_nearby_item_search())
@@ -452,6 +456,8 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 
 		if(faction_check(bullet.firer))
 			return
+		// DemonicLynx for BandaMarines
+		cancel_treatment_for_combat() // SS220 EDIT: only hostile projectile contact interrupts treatment
 
 		if(get_dist(tied_human, bullet.firer) <= view_distance)
 			set_target(bullet.firer)
@@ -555,6 +561,8 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 
 	if(faction_check(bullet.firer))
 		return
+	// DemonicLynx for BandaMarines
+	cancel_treatment_for_combat() // SS220 EDIT: confirmed hostile damage interrupts treatment before retaliation
 
 	if(get_dist(tied_human, bullet.firer) <= view_distance)
 		set_target(bullet.firer)

@@ -1,5 +1,6 @@
 // DemonicLynx for BandaMarines
 #define HUMAN_AI_COVER_SCAN_LIMIT 198
+#define HUMAN_AI_COVER_SEARCH_RANGE 3
 
 /datum/human_ai_brain
 	/// If TRUE, AI is currently in some form of cover
@@ -123,6 +124,9 @@
 			var/turf/nearby_turf = get_step(scan_turf, cardinal)
 			if(!nearby_turf)
 				continue
+			// DemonicLynx for BandaMarines
+			if(get_dist(start_turf, nearby_turf) > HUMAN_AI_COVER_SEARCH_RANGE) // SS220 EDIT: defensive cover searches stay local
+				continue
 
 			if(istype(nearby_turf, /turf/closed))
 				turf_dict[scan_turf] += 2
@@ -155,6 +159,9 @@
 	var/most_weight = -INFINITY
 	var/turf/best_cover
 	for(var/turf/T as anything in turf_dict)
+		// DemonicLynx for BandaMarines
+		if(get_dist(tied_human, T) > HUMAN_AI_COVER_SEARCH_RANGE) // SS220 EDIT: squad-shared scans cannot move this AI farther than three tiles
+			continue
 		var/weight = turf_dict[T]
 		if(weight > most_weight)
 			most_weight = weight
@@ -170,3 +177,4 @@
 			// DemonicLynx for BandaMarines
 
 #undef HUMAN_AI_COVER_SCAN_LIMIT
+#undef HUMAN_AI_COVER_SEARCH_RANGE

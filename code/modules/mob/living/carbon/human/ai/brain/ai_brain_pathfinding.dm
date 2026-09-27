@@ -253,7 +253,12 @@
 	if(try_local_detour_towards_turf(destination, next_turf))
 		return TRUE
 
-	return TRUE
+	// DemonicLynx for BandaMarines
+	// SS220 EDIT - START: do not endlessly retry a stale path whose next step is a wall or another hard blocker
+	clear_navigation_path()
+	no_path_found = TRUE
+	return FALSE
+	// SS220 EDIT - END
 
 /datum/human_ai_brain/proc/move_to_next_turf(turf/T, max_range = max_travel_distance)
 	if(!tied_human || !T)

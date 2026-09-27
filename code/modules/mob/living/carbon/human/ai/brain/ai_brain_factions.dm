@@ -1410,7 +1410,8 @@
 	faction = FACTION_CANC_DOGWAR
 	friendly_factions = list(
 		FACTION_COLONIST,
-		FACTION_UPP,
+		// FACTION_UPP, // SS220 EDIT: CANC Dog War forces no longer treat UPP as friendly
+		// DemonicLynx for BandaMarines
 	)
 	neutral_factions = list(
 		FACTION_SURVIVOR,
