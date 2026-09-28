@@ -1,3 +1,5 @@
 // DemonicLynx for BandaMarines
 #include "code/grenade_reactions.dm"
 #include "code/idle_defensive_positions.dm"
+#include "code/navigation_safety.dm"
+#include "code/quick_order_control.dm"

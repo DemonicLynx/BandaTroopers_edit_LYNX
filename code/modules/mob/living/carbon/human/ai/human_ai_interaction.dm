@@ -36,6 +36,17 @@
 
 	return ..()
 
+// DemonicLynx for BandaMarines
+// SS220 EDIT AI - START: navigation must not operate unrelated consoles with an NPC as the browser user
+/obj/structure/machinery/computer/human_ai_obstacle(mob/living/carbon/human/ai_human, datum/human_ai_brain/brain, direction, turf/target)
+	if(!density)
+		return 0
+	return INFINITY
+
+/obj/structure/machinery/computer/human_ai_act(mob/living/carbon/human/ai_human, datum/human_ai_brain/brain)
+	return FALSE
+// SS220 EDIT AI - END
+
 /////////////////////////////
 //       MINERAL DOOR      //
 /////////////////////////////
@@ -198,7 +209,8 @@
 //       BARRICADES        //
 /////////////////////////////
 /obj/structure/barricade/human_ai_act(mob/living/carbon/human/ai_human, datum/human_ai_brain/brain)
-	if(!is_wired)
+	// DemonicLynx for BandaMarines: use the same canonical climb check as a player, including wired climbable barricades.
+	if(climbable)
 		if(!ai_human.action_busy)
 			do_climb(ai_human)
 		return TRUE

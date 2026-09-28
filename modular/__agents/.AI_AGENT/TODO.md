@@ -3,18 +3,17 @@
 ## Contract
 | ID | Type | Requirement | Status |
 | --- | --- | --- | --- |
-| M1 | MUST | Replace the ambiguous "large work" threshold with an approved-plan rule that applies before product-code/docs edits of any size. | DONE |
-| M2 | MUST | Define one ordered workflow: read-only discovery -> task-state contract -> challenge -> implementation -> audit/sync -> verification/final. | DONE |
-| M3 | MUST | Separate planning task-state edits from later product-code/docs mutating edits. | DONE |
-| M4 | MUST | Make `PASS WITH RISKS`, `BLOCKED`, and incomplete `MUST/KEEP/REJECT` statuses block false "done". | DONE |
-| M5 | MUST | Normalize test guidance so verification cannot replace plan fidelity when the user prioritizes plan implementation. | DONE |
-| M6 | MUST | Make subagent usage explicit: only when the user and higher-priority instructions allow it; otherwise self-challenge. | DONE |
-| K1 | KEEP | Keep modular-first, `rg`, build-tooling, UTF-8, and non-destructive git rules. | DONE |
-| R1 | REJECT | Do not add another overlapping rule layer that keeps old contradictions alive. | DONE |
-| C1 | CHECK | Run docs-level checks for diff whitespace and mojibake. | DONE |
+| M1 | MUST | Admit only non-dense canonical underfloor infrastructure. | DONE |
+| M2 | MUST | Reject flora that renders at/above mob level or uses tall-grass overlays. | DONE |
+| M3 | MUST | Keep Approach persistent through combat interruptions and compatible with firing. | DONE |
+| M4 | MUST | Bound unreachable Approach retries and discourage immediate A-B-A detours. | DONE |
+| K1 | KEEP | Tables, crates, lattices, machinery, props, walls, and dense objects remain forbidden. | DONE |
+| K2 | KEEP | Combat targeting and firing remain active while Approach owns only movement. | DONE |
+| R1 | REJECT | Do not broadly allow every non-dense structure or every FLOOR_PLANE object. | DONE |
+| C1 | CHECK | Add focused static/unit coverage without local DreamMaker. | DONE |
 
 ## Forbidden Substitutions
-- Do not replace normalization with a small wording patch in only one file.
-- Do not keep "large task" as a gate for approved-plan contracts.
-- Do not make tests or compile checks the proof of plan fidelity.
-- Do not let old task-state about `outpost_radius` remain active for this docs task.
+- Do not permit structural lattice, weeds, traps, furniture, containers, or generic props based only on density/layer.
+- Do not make Approach block hand-only firing actions.
+- Do not clear a valid Approach merely because its action datum was temporarily preempted.
+- Do not retry an unreachable order without a bounded failure limit.

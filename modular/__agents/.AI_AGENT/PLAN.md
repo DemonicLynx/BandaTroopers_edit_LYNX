@@ -1,28 +1,24 @@
 # PLAN
 
 ## Active Task
-Normalize repository AI-agent instructions so approved implementation plans cannot be replaced by small fixes, wrappers, or test-only closure.
+Harden Human AI navigation and make Quick Order: Approach persistent during combat.
 
 ## Goal
-- Remove contradictions between `AGENTS.md`, `.AI_AGENT/README.md`, `WORKFLOW_RULES.md`, and `POLICIES.md`.
-- Establish one execution order for approved plans: read-only discovery -> task-state contract -> plan-mapping challenge -> product-code/docs edits -> old-path audit -> task-state sync -> verification/final.
-- Preserve the existing repository preferences for `rg`, modular-first development, build tooling, UTF-8 docs, and non-destructive git behavior.
+- Allow walking over canonical underfloor pipes, vents, cables, and disposal pipes.
+- Allow only low, non-obscuring flora as traversal; reject bushes, tall grass, jungle cover, and trees.
+- Prevent immediate back-and-forth detour oscillation and throttle failed idle-position retries.
+- Keep Approach assigned across combat action interruptions while allowing simultaneous firing.
+- Clear Approach only on arrival, a replacement Hold order, reset, or confirmed repeated path failure.
 
 ## Scope
-- Stable guidance files:
-  - `AGENTS.md`
-  - `modular/__agents/.AI_AGENT/README.md`
-  - `modular/__agents/.AI_AGENT/WORKFLOW_RULES.md`
-  - `modular/__agents/.AI_AGENT/POLICIES.md`
-- Active task-state files:
-  - `modular/__agents/.AI_AGENT/PLAN.md`
-  - `modular/__agents/.AI_AGENT/TODO.md`
-  - `modular/__agents/.AI_AGENT/DECISIONS.md`
-  - `modular/__agents/.AI_AGENT/EVIDENCE.md`
+- Modular navigation safety and quick-order control.
+- Minimal Human AI pathfinding, brain reset, and Quick Approach integration.
+- Focused Human AI unit assertions.
+- Deployment target: `C:\BandaTroopers_edit_LYNX`.
 
 ## Acceptance Criteria
-- No rule still depends on "large task" when the user has given or approved a concrete plan.
-- Task-state edits are clearly separated from product-code/docs edits.
-- `PASS WITH RISKS`, `BLOCKED`, and test status cannot hide incomplete `MUST/KEEP/REJECT` items.
-- Subagents are only used when explicitly allowed by the user and current higher-priority instructions.
-- Docs stay concise UTF-8 Markdown with no mojibake.
+- NPCs cross floor tiles containing non-dense underfloor infrastructure.
+- NPCs never settle in or path through visually obscuring vegetation.
+- Local detours prefer any legal alternative over immediately returning to the previous turf.
+- Approach remains active during combat and does not conflict with Fire At Target.
+- Interrupted Approach resumes; unreachable orders terminate after bounded failures instead of endless cell oscillation.

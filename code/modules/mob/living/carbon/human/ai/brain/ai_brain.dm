@@ -128,6 +128,7 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 	wake_rethink_queued_at = -1 // SS220 EDIT: reset must always cancel deferred wake-up recovery before owner teardown finishes
 
 	in_combat = FALSE
+	quick_approach = null // SS220 EDIT: persistent Approach orders must still be cleared when the brain itself resets
 	active_grenade_found = null // SS220 EDIT: reset stale grenade threat state so AI can leave throw-back mode cleanly
 	last_detected_projectile = null // SS220 EDIT: clear projectile detection debounce when brain is reset
 	last_detected_projectile_time = -1
@@ -217,6 +218,7 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 	scan_nearby_live_grenade_threat() // SS220 EDIT: active floor grenades require a dedicated four-tile emergency scan
 	preempt_actions_for_live_grenade() // SS220 EDIT: grenade reactions immediately release occupied hand and movement slots
 	preempt_routine_actions_for_ally_treatment() // SS220 EDIT: safe medical emergencies displace stale routine action-slot owners
+	preempt_actions_for_unsafe_turf() // SS220 EDIT: DemonicLynx for BandaMarines - never let an interrupted traversal leave an NPC hidden inside scenery
 
 	// List all allowed action types for AI to consider
 	var/list/allowed_actions = action_whitelist || (GLOB.AI_actions.Copy() - action_blacklist)
@@ -243,6 +245,9 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 	var/list/possible_actions = list()
 	for(var/action_type in shuffle(allowed_actions))
 		var/datum/ai_action/glob_ref = GLOB.AI_actions[action_type]
+		// DemonicLynx for BandaMarines
+		if(quick_order_blocks_action(glob_ref)) // SS220 EDIT: Hold Position centrally rejects every newly scheduled movement action
+			continue
 		// SS220 EDIT: skip hand-using actions while a grenade throw is in async flight
 		if(grenade_throw_in_progress && (glob_ref.action_flags & ACTION_USING_HANDS))
 			continue
@@ -272,6 +277,9 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 #endif
 
 	for(var/datum/ai_action/action as anything in ongoing_actions)
+		// DemonicLynx for BandaMarines
+		if(quick_order_blocks_action(action)) // SS220 EDIT: Hold Position also freezes movement actions that survived a state race
+			continue
 		// SS220 EDIT: suppress hand-using actions while a grenade throw is in async flight
 		if(grenade_throw_in_progress && (action.action_flags & ACTION_USING_HANDS))
 			continue

@@ -11,13 +11,6 @@
 	var/turf/idle_defensive_position
 	/// Prevents settled AI from repeatedly re-evaluating the same local formation.
 	var/idle_defensive_recheck_at = 0
-	// DemonicLynx for BandaMarines
-	/// Passable objects whose turf is valid for traversal but never for an idle defensive post.
-	var/static/list/idle_defensive_position_forbidden_types = list(
-		/obj/structure/machinery,
-		/obj/structure/closet,
-		/obj/structure/bed,
-	)
 
 /// Returns whether routine idle movement is safe without displacing a higher-priority behavior.
 /datum/human_ai_brain/proc/can_seek_idle_defensive_position()
@@ -49,20 +42,32 @@
 			return TRUE
 	return FALSE
 
-/// Returns how much static protection surrounds an otherwise usable standing tile.
+/// Returns TRUE only for scenery explicitly approved as an idle defensive anchor.
+/datum/human_ai_brain/proc/human_ai_is_idle_cover_anchor(atom/cover)
+	return istype(cover, /turf/closed) || istype(cover, /obj/structure/machinery/door) || istype(cover, /obj/structure/surface/table) || istype(cover, /obj/structure/closet/crate) || istype(cover, /obj/structure/largecrate) || istype(cover, /obj/structure/barricade)
+
+/// Idle posts must be visually and physically empty even when approved cover is adjacent.
+/datum/human_ai_brain/proc/human_ai_idle_position_is_clear(turf/candidate)
+	if(!candidate)
+		return FALSE
+	for(var/obj/obstacle in candidate.contents)
+		return FALSE
+	return TRUE
+
+/// Returns how much approved static protection surrounds an otherwise usable standing tile.
 /datum/human_ai_brain/proc/get_idle_position_cover_score(turf/candidate)
 	var/cover_score = 0
 	for(var/cardinal in GLOB.cardinals)
 		var/turf/neighbor = get_step(candidate, cardinal)
 		if(!neighbor)
 			continue
-		if(istype(neighbor, /turf/closed))
+		if(human_ai_is_idle_cover_anchor(neighbor))
 			cover_score += 20
 			continue
-		for(var/obj/structure/cover in neighbor.contents)
-			if(!cover.density || cover.projectile_coverage <= PROJECTILE_COVERAGE_NONE)
+		for(var/atom/cover as anything in neighbor.contents)
+			if(!human_ai_is_idle_cover_anchor(cover))
 				continue
-			cover_score += 10 + round(cover.projectile_coverage / 10)
+			cover_score += 10
 			break
 	return cover_score
 
@@ -83,7 +88,12 @@
 /datum/human_ai_brain/proc/score_idle_defensive_position(turf/candidate, list/position_counts)
 	if(!candidate || candidate == get_turf(tied_human) || idle_defensive_position_is_blocked(candidate))
 		return -INFINITY
+	if(!human_ai_idle_position_is_clear(candidate))
+		return -INFINITY
 	if((locate(/obj/item/explosive/mine) in candidate.contents) || (locate(/obj/flamer_fire) in candidate.contents))
+		return -INFINITY
+	var/cover_score = get_idle_position_cover_score(candidate)
+	if(cover_score <= 0)
 		return -INFINITY
 	if(!position_counts)
 		position_counts = get_nearby_idle_position_counts()
@@ -107,7 +117,7 @@
 		return -INFINITY
 
 	var/distance = get_dist(tied_human, candidate)
-	var/score = get_idle_position_cover_score(candidate)
+	var/score = cover_score
 	score += min(distance, 4) * 2
 	score -= max(0, distance - 4) * 3
 	score -= spacing_penalty
@@ -134,32 +144,27 @@
 
 /// Checks destination obstruction while allowing the owner to remain on its already reached post.
 /datum/human_ai_brain/proc/idle_defensive_position_is_blocked(turf/candidate, ignore_owner = FALSE)
-	if(QDELETED(candidate) || candidate.density)
-		return TRUE
-	for(var/atom/movable/obstacle as anything in candidate.contents)
-		if(ignore_owner && obstacle == tied_human)
-			continue
-		// DemonicLynx for BandaMarines
-		if(obstacle.density || is_type_in_list(obstacle, idle_defensive_position_forbidden_types))
-			return TRUE
-	return FALSE
+	// DemonicLynx for BandaMarines
+	return !human_ai_turf_is_safe(candidate, ignore_owner, FALSE)
 
 // DemonicLynx for BandaMarines
-/// Returns whether an idle movement step would enter any shutter, including an open non-dense one.
-/datum/human_ai_brain/proc/idle_defensive_step_has_shutter(turf/candidate)
-	return candidate && (locate(/obj/structure/machinery/door/poddoor/shutters) in candidate)
+/// Returns whether local idle movement would enter scenery or machinery instead of a real standing tile.
+/datum/human_ai_brain/proc/idle_defensive_step_is_blocked(turf/candidate)
+	return idle_defensive_position_is_blocked(candidate)
 
 // DemonicLynx for BandaMarines
-/// Takes one bounded idle-only step without letting generic navigation route through a shutter.
+/// Takes one bounded idle-only step without routing through tables, doors, lockers, or machinery.
 /datum/human_ai_brain/proc/move_to_idle_defensive_position(turf/destination)
 	if(!has_valid_tied_human() || !destination)
+		return FALSE
+	if(idle_defensive_position_is_blocked(destination, TRUE))
 		return FALSE
 
 	var/current_distance = get_dist(tied_human, destination)
 	if(!current_distance)
 		return TRUE
 	if(current_distance == 1)
-		if(idle_defensive_step_has_shutter(destination))
+		if(idle_defensive_step_is_blocked(destination))
 			return FALSE
 		return try_adjacent_move_to_turf(destination)
 
@@ -172,7 +177,7 @@
 			continue
 
 		var/turf/next_turf = get_step(tied_human, direction)
-		if(!next_turf || idle_defensive_step_has_shutter(next_turf))
+		if(!next_turf || idle_defensive_step_is_blocked(next_turf))
 			continue
 
 		var/list/interactions = get_adjacent_move_interactions(next_turf)
@@ -207,6 +212,8 @@
 	var/turf/destination
 
 /datum/ai_action/idle_defensive_position/get_weight(datum/human_ai_brain/brain)
+	if(world.time < brain.idle_defensive_recheck_at)
+		return 0
 	if(!brain.can_seek_idle_defensive_position() || !brain.is_in_idle_ai_cluster())
 		return 0
 	return 6
@@ -214,6 +221,8 @@
 /datum/ai_action/idle_defensive_position/Added()
 	destination = brain.find_idle_defensive_position()
 	brain.idle_defensive_position = destination
+	if(!destination)
+		brain.idle_defensive_recheck_at = world.time + HUMAN_AI_IDLE_RECHECK_DELAY
 
 /datum/ai_action/idle_defensive_position/Destroy(force, ...)
 	if(brain && brain.idle_defensive_position == destination)
@@ -235,6 +244,7 @@
 	if(get_dist(brain.tied_human, destination) > 0)
 		// DemonicLynx for BandaMarines
 		if(!brain.move_to_idle_defensive_position(destination))
+			brain.idle_defensive_recheck_at = world.time + HUMAN_AI_IDLE_RECHECK_DELAY
 			return ONGOING_ACTION_COMPLETED
 		return ONGOING_ACTION_UNFINISHED
 

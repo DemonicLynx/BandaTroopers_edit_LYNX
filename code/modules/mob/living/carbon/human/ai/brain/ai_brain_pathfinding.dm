@@ -5,6 +5,8 @@
 	var/list/current_path
 	/// The next turf in current_path that the AI is moving to
 	var/turf/current_path_target
+	/// The turf left by the last successful ordinary movement step, used to discourage immediate A-B-A detours.
+	var/turf/last_navigation_turf
 	/// How much a moving target may drift before we throw away the current path target.
 	var/path_target_retarget_slack = 0
 	/// Prefer a cheap local step over full pathfinding while the destination stays nearby.
@@ -33,13 +35,31 @@
 	if(ai_move_delay > world.time || !(tied_human.mobility_flags & MOBILITY_MOVE) || tied_human.is_mob_incapacitated(TRUE) || (tied_human.body_position != STANDING_UP && !tied_human.can_crawl) || tied_human.anchored)
 		return FALSE
 
-	ai_move_delay = world.time + tied_human.move_delay
+	var/calculated_move_delay = tied_human.move_delay // SS220 EDIT: preserve the canonical human movement delay for AI scheduling
 	if(tied_human.recalculate_move_delay)
-		ai_move_delay = world.time + tied_human.movement_delay()
+		calculated_move_delay = tied_human.movement_delay()
+	// DemonicLynx for BandaMarines
+	// SS220 EDIT - START: retain fractional equipment slowdown without banking idle time into burst movement
+	schedule_next_move(world.time, calculated_move_delay, SShuman_ai.wait)
+	// SS220 EDIT - END
 	if(tied_human.next_move_slowdown)
 		ai_move_delay += tied_human.next_move_slowdown
 		tied_human.next_move_slowdown = 0
 	return TRUE
+
+// DemonicLynx for BandaMarines
+// SS220 EDIT - START: bounded deadline carry preserves fractional armor slowdown
+/// Schedules the next AI step while retaining only the lateness caused by one normal subsystem interval.
+/datum/human_ai_brain/proc/schedule_next_move(current_time, calculated_move_delay, carry_limit)
+	var/carried_lateness = max(current_time - ai_move_delay, 0)
+	if(carried_lateness > carry_limit)
+		carried_lateness = 0
+	else
+		carried_lateness = min(carried_lateness, max(calculated_move_delay - world.tick_lag, 0))
+
+	ai_move_delay = current_time + calculated_move_delay - carried_lateness
+	return ai_move_delay
+// SS220 EDIT - END
 
 /datum/human_ai_brain/proc/clear_navigation_path()
 	current_path = null
@@ -71,6 +91,14 @@
 /datum/human_ai_brain/proc/get_adjacent_move_interactions(turf/next_turf)
 	if(!tied_human || !next_turf || get_dist(next_turf, tied_human) != 1)
 		return null
+	// DemonicLynx for BandaMarines
+	if(!quick_order_step_within_boundary(next_turf)) // SS220 EDIT: permitted Hold actions still cannot path across their fallback boundary
+		return null
+	// DemonicLynx for BandaMarines
+	// SS220 EDIT - START: never step onto scenery; door blockers remain delegated to their interaction logic
+	if(!human_ai_turf_is_safe(next_turf, FALSE, TRUE, TRUE)) // SS220 EDIT: traversal may cross known stairs, ladders, handrails, and platform stair cuts
+		return null
+	// SS220 EDIT - END
 
 	var/list/L = LinkBlocked(tied_human, tied_human.loc, next_turf, list(tied_human), TRUE)
 	L += SSpathfinding.check_special_blockers(tied_human, next_turf)
@@ -93,13 +121,34 @@
 
 	if(!can_move_and_apply_move_delay())
 		return TRUE
+	// DemonicLynx for BandaMarines
+	if(!quick_order_step_within_boundary(next_turf)) // SS220 EDIT: revalidate the Hold boundary immediately before moving
+		return FALSE
+	// DemonicLynx for BandaMarines
+	// SS220 EDIT - START: contents can change after route selection and before the actual Move()
+	if(!human_ai_turf_is_safe(next_turf, FALSE, TRUE, TRUE)) // SS220 EDIT: revalidate the same traversal-only structure allowlist
+		return FALSE
+	// SS220 EDIT - END
 
+	// DemonicLynx for BandaMarines
+	// SS220 EDIT - START: canonical climbing owns movement and must not be followed by Move() into the blocker
+	var/interaction_handles_movement = FALSE
 	for(var/a in interactions)
 		var/atom/A = a
+		if(istype(A, /obj/structure))
+			var/obj/structure/climbable_structure = A
+			if(climbable_structure.climbable)
+				interaction_handles_movement = TRUE
 		INVOKE_ASYNC(A, TYPE_PROC_REF(/atom, human_ai_act), tied_human, src)
+	if(interaction_handles_movement)
+		// DemonicLynx for BandaMarines: do_climb() moves after a delay; the caller retains this path node until arrival.
+		return TRUE
+	// SS220 EDIT - END
 
+	var/turf/previous_turf = get_turf(tied_human)
 	var/successful_move = tied_human.Move(next_turf, get_dir(tied_human, next_turf))
 	if(successful_move)
+		last_navigation_turf = previous_turf
 		on_navigation_success(clear_navigation_state)
 
 	return successful_move
@@ -136,6 +185,8 @@
 		var/score = next_distance * 10
 		if(direction != preferred_direction)
 			score++
+		if(next_turf == last_navigation_turf)
+			score += 100
 
 		if(score < best_score)
 			best_score = score
@@ -178,6 +229,8 @@
 			score += 5
 		if(direction != preferred_direction)
 			score++
+		if(next_turf == last_navigation_turf)
+			score += 100
 
 		if(score < best_score)
 			best_score = score
@@ -240,6 +293,11 @@
 		return TRUE
 
 	var/turf/next_turf = current_path[length(current_path)]
+	// DemonicLynx for BandaMarines: an asynchronous climb has now reached its retained path node.
+	if(get_turf(tied_human) == next_turf)
+		trim_current_path_step()
+		on_navigation_success(FALSE)
+		return TRUE
 	// We've somehow deviated from our current path. Generate next path whenever possible.
 	if(get_dist(next_turf, tied_human) > 1)
 		clear_navigation_path()
@@ -247,7 +305,9 @@
 
 	var/successful_move = try_adjacent_move_to_turf(next_turf, FALSE)
 	if(successful_move)
-		trim_current_path_step()
+		// Delayed do_climb() has not reached the structure yet, so its node must remain at the end of the path.
+		if(get_turf(tied_human) == next_turf)
+			trim_current_path_step()
 		return TRUE
 
 	if(try_local_detour_towards_turf(destination, next_turf))

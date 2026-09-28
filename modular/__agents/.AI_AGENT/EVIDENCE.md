@@ -1,42 +1,49 @@
 # EVIDENCE
 
-## E-001: Starting state
-- Active task-state previously described `outpost_radius`, not the current instruction-normalization task.
-- Read-only review found contradictions across `AGENTS.md`, `WORKFLOW_RULES.md`, `.AI_AGENT/README.md`, and `POLICIES.md`.
+## E-001: Read-only findings
+- `human_ai_turf_is_safe()` rejects every structure except a traversal allowlist; underfloor pipes, cables, vents, and disposal pipes therefore block otherwise walkable floors.
+- The flora allowlist currently admits all grass, bush, jungle, and forest families when non-dense, including above-mob sprites that visually hide NPCs.
+- Normal and idle destinations use strict safety, but path steps use the flora allowlist; an NPC can remain visually hidden whenever traversal stalls on such a step.
+- `quick_approach.Destroy()` always clears the brain order, so any combat/emergency preemption permanently loses the command.
+- Quick Approach uses `ACTION_USING_LEGS`, while Fire At Target uses only `ACTION_USING_HANDS`; they are naturally compatible if the order survives.
+- Local detours do not remember the immediately previous turf, permitting A-B-A oscillation around an unreachable route.
 
-## E-002: Plan mapping challenge
-- Status: PASS WITH RISKS before implementation.
-- Risk: instructions are stable guidance, so duplicated wording can drift again. Mitigation: keep `AGENTS.md` as the entrypoint and put detailed mechanics in `WORKFLOW_RULES.md`.
-- Risk: concise task-state conflicts with contract tables. Mitigation: explicitly allow concise tables and summaries while keeping raw logs outside Markdown.
-- Risk: tests can still be over-prioritized. Mitigation: split `Plan Fidelity` from `Verification` and make incomplete `MUST/KEEP/REJECT` block final "done".
+## E-002: Plan-mapping self-challenge
+- PASS WITH BOUNDED EXCEPTIONS.
+- Broad non-dense structure allowance rejected: it reintroduces disappearing NPCs in props and containers.
+- Broad FLOOR_PLANE allowance rejected: lattices, weeds, traps, and alien structures share that plane.
+- Making Approach an uninterruptible blocking action rejected: it would suppress emergency reactions and is unnecessary for concurrent firing.
+- Selected approach keeps exact type/layer guards, separates persistent order state from transient action state, and bounds genuine failures.
 
-## E-003: Expected old contradictions to remove
-- "Large work" must not be the gate when a user-approved plan exists.
-- Task-state edits must not be confused with product-code/docs implementation edits.
-- `PASS WITH RISKS` must not allow known plan-changing risks.
-- `BLOCKED` must not become permission for fallback.
-- Subagents must not be implied unless explicitly permitted by user and higher-priority instructions.
+## E-003: Verification plan
+- Focused unit assertions for underfloor allowlist, obscuring flora rejection, non-conflict with firing, persistent preemption, bounded failure, and detour memory.
+- `git diff --check`, include/callsite audit, and changed-scope inspection.
+- DreamMaker/dm-test intentionally not run under the user's standing constraint.
 
-## E-004: Implementation result
-- `AGENTS.md` now defines read-only discovery, planning-mutation, and implementation-правки before product/stable-doc edits.
-- `.AI_AGENT/README.md` now allows compact contract/fidelity tables and removes the old "new large task" lifecycle gate.
-- `WORKFLOW_RULES.md` now has one approved-plan order, explicit challenge outcomes, forbidden substitutions, old-path audit, pre-final sync, and separate Plan Fidelity/Verification status.
-- `POLICIES.md` now routes approved plans through task-state contract and challenge instead of generic alternatives, and blocks hotfix/wrapper/fallback substitution.
+## E-004: Implementation
+- Added an exact non-dense allowlist for atmos pipes/vents, power cables, and disposal pipes.
+- Flora traversal now rejects tall grass and any flora rendered at or above `MOB_LAYER`; low grass remains traversable but is still not a standing destination.
+- Successful movement remembers the previous turf and local step scoring strongly avoids an immediate return when another route exists.
+- Failed idle redistribution now waits five seconds before retrying.
+- Quick Approach order state survives action deletion, clears explicitly on arrival/reset/Hold, and stops after three real navigation failures or two A-B-A returns.
+- Quick Order preemption preserves `target_turf` when a combat target exists, while movement remains legs-only and firing hands-only.
 
 ## E-005: Verification
-- PASS: `git diff --check`.
-- PASS: `rg` check for removed contradiction phrases. The only hit was the intended `без готового пользовательского плана` wording in `POLICIES.md`.
-- PASS: mojibake scan; the only hits are intentional `Р...` examples in `WORKFLOW_RULES.md` and this evidence note.
+- PASS: `git diff --check` on all changed tracked files; no whitespace errors.
+- PASS: Human AI module manifest includes navigation safety, quick-order control, and idle-position modules.
+- PASS: exact underfloor type definitions exist for pipes, cable, and disposal pipe.
+- PASS: focused assertions cover low/obscuring flora, all allowed underfloor families, arbitrary FLOOR_PLANE rejection, concurrent firing compatibility, target preservation, interrupted-order persistence, and bounded unreachable-order failure.
+- PASS: `dreamchecker` lookup confirmed it is unavailable.
+- NOT RUN: DreamMaker/dm-test, following the user's standing request.
 
 ## Plan fidelity matrix
-| ID | Type | Requirement | Evidence | Status |
-| --- | --- | --- | --- | --- |
-| M1 | MUST | Approved plans do not depend on "large work" threshold. | `AGENTS.md`, `README.md`, `WORKFLOW_RULES.md`; `rg` check. | DONE |
-| M2 | MUST | One ordered workflow exists. | `WORKFLOW_RULES.md` approved-plan order. | DONE |
-| M3 | MUST | Planning task-state edits are separate from implementation edits. | `AGENTS.md` and `WORKFLOW_RULES.md` planning-mutation wording. | DONE |
-| M4 | MUST | `PASS WITH RISKS`, `BLOCKED`, and incomplete contract items cannot hide false done. | `WORKFLOW_RULES.md`, `POLICIES.md`. | DONE |
-| M5 | MUST | Verification cannot replace plan fidelity. | `AGENTS.md`, `WORKFLOW_RULES.md`, `POLICIES.md`. | DONE |
-| M6 | MUST | Subagents require explicit user/higher-priority permission; otherwise self-challenge. | `AGENTS.md`, `WORKFLOW_RULES.md`. | DONE |
-| K1 | KEEP | Preserve modular-first, `rg`, build, UTF-8, and non-destructive git guidance. | Existing rules retained and clarified. | DONE |
-| R1 | REJECT | Avoid another overlapping layer. | Contradictory thresholds replaced in the affected sections. | DONE |
-| C1 | CHECK | Docs-level checks pass. | `git diff --check`, `rg` scans. | DONE |
+| ID | Status | Evidence |
+| --- | --- | --- |
+| M1 | DONE | `human_ai_is_underfloor_infrastructure()` exact allowlist. |
+| M2 | DONE | Layer and tall-grass guards in `human_ai_is_passable_flora()`. |
+| M3 | DONE | Approach Destroy no longer erases brain state; combat target turf is preserved. |
+| M4 | DONE | Previous-turf scoring plus bounded failure/oscillation counters. |
+| K1 | DONE | Generic structures and arbitrary FLOOR_PLANE props remain rejected. |
+| K2 | DONE | Quick Approach uses legs; Fire At Target remains hands-only and non-conflicting. |
+| R1 | DONE | No density-only or FLOOR_PLANE-wide exception added. |
+| C1 | DONE | Focused test coverage and static checks completed. |

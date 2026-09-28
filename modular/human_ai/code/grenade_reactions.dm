@@ -4,7 +4,7 @@
 
 /datum/human_ai_brain
 	/// Percentage rolled once when a new combat encounter begins.
-	var/combat_grenade_use_chance = 40
+	var/combat_grenade_use_chance = 100
 	var/combat_grenade_decision_made = FALSE
 	var/combat_grenade_selected = FALSE
 	COOLDOWN_DECLARE(live_grenade_scan_cooldown)
@@ -25,6 +25,88 @@
 /datum/human_ai_brain/proc/consume_combat_grenade_decision()
 	combat_grenade_decision_made = TRUE
 	combat_grenade_selected = FALSE
+
+// DemonicLynx for BandaMarines
+/// Returns a loaded launcher which can fire immediately without inventing a reload or pump action.
+/datum/human_ai_brain/proc/get_ready_underbarrel_grenade_launcher()
+	if(!primary_weapon)
+		return null
+	var/obj/item/attachable/attached_gun/grenade/launcher = primary_weapon.attachments["under"]
+	if(!istype(launcher))
+		return null
+	if(launcher.has_breech && (launcher.breech_open || !launcher.cocked))
+		return null
+	if(istype(launcher, /obj/item/attachable/attached_gun/grenade/mk1))
+		return launcher.in_chamber ? launcher : null
+	if(!launcher.in_chamber && launcher.current_rounds <= 0)
+		return null
+	return launcher
+
+/// Returns whether one underbarrel grenade may safely land on this turf.
+/datum/human_ai_brain/proc/can_fire_underbarrel_grenade_at(obj/item/attachable/attached_gun/grenade/launcher, turf/candidate)
+	if(!launcher || !candidate || !has_valid_tied_human())
+		return FALSE
+	var/distance = get_dist(tied_human, candidate)
+	if(distance <= 2 || distance > launcher.max_range)
+		return FALSE
+	for(var/turf/path_turf as anything in get_line(tied_human, candidate, include_start_atom = FALSE))
+		if(path_turf.density)
+			return FALSE
+		for(var/obj/path_blocker in path_turf)
+			if(path_blocker.density)
+				return FALSE
+	for(var/mob/possible_friendly in range(friendly_throw_check_range, candidate))
+		if(!can_target(possible_friendly))
+			return FALSE
+	return TRUE
+
+/// Keeps the landing point on the line toward the hostile and clamps it to launcher range.
+/datum/human_ai_brain/proc/get_underbarrel_grenade_target(obj/item/attachable/attached_gun/grenade/launcher, turf/hostile_turf)
+	if(!launcher || !hostile_turf)
+		return null
+	if(can_fire_underbarrel_grenade_at(launcher, hostile_turf))
+		return hostile_turf
+	var/turf/best_target
+	for(var/turf/candidate as anything in get_line(tied_human, hostile_turf, include_start_atom = FALSE))
+		if(get_dist(tied_human, candidate) > launcher.max_range)
+			break
+		if(can_fire_underbarrel_grenade_at(launcher, candidate))
+			best_target = candidate
+	return best_target
+
+/datum/ai_action/fire_underbarrel_grenade
+	name = "Fire Underbarrel Grenade"
+	action_flags = ACTION_USING_HANDS
+
+/datum/ai_action/fire_underbarrel_grenade/get_weight(datum/human_ai_brain/brain)
+	if(!brain.in_combat || !brain.target_turf || length(brain.equipment_map[HUMAN_AI_GRENADES]))
+		return 0
+	if(!brain.should_attempt_combat_grenade())
+		return 0
+	var/obj/item/attachable/attached_gun/grenade/launcher = brain.get_ready_underbarrel_grenade_launcher()
+	if(!launcher || !brain.get_underbarrel_grenade_target(launcher, brain.target_turf))
+		return 0
+	return 100
+
+/datum/ai_action/fire_underbarrel_grenade/trigger_action()
+	. = ..()
+	var/obj/item/attachable/attached_gun/grenade/launcher = brain.get_ready_underbarrel_grenade_launcher()
+	var/turf/launch_target = brain.get_underbarrel_grenade_target(launcher, brain.target_turf)
+	if(!launcher || !launch_target)
+		return ONGOING_ACTION_COMPLETED
+
+	var/mob/living/carbon/human/tied_human = brain.tied_human
+	brain.unholster_primary()
+	brain.ensure_primary_hand(brain.primary_weapon)
+	brain.wield_primary()
+	if(!(brain.primary_weapon.flags_item & WIELDED))
+		return ONGOING_ACTION_COMPLETED
+
+	tied_human.face_atom(launch_target)
+	brain.say_grenade_thrown_line()
+	launcher.fire_attachment(launch_target, brain.primary_weapon, tied_human)
+	brain.consume_combat_grenade_decision()
+	return ONGOING_ACTION_COMPLETED
 
 /// Finds the nearest active grenade lying on the floor within the reaction radius.
 /datum/human_ai_brain/proc/scan_nearby_live_grenade_threat(force_scan = FALSE)

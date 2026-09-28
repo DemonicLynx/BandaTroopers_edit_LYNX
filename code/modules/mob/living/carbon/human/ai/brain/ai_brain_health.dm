@@ -172,6 +172,9 @@
 	for(var/turf/candidate as anything in target_turf.AdjacentTurfs())
 		if(candidate == target_turf || candidate.density)
 			continue
+		// DemonicLynx for BandaMarines
+		if(!quick_order_step_within_boundary(candidate)) // SS220 EDIT: Hold Position permits treatment movement only inside its boundary
+			continue
 
 		// DemonicLynx for BandaMarines
 		var/permanently_blocked = FALSE
@@ -206,6 +209,9 @@
 	for(var/turf/crowded_turf as anything in crowded_treatment_turfs)
 		for(var/turf/staging_turf as anything in crowded_turf.AdjacentTurfs())
 			if(staging_turf == target_turf || get_dist(staging_turf, target_turf) > 2 || is_blocked_turf(staging_turf))
+				continue
+			// DemonicLynx for BandaMarines
+			if(!quick_order_step_within_boundary(staging_turf)) // SS220 EDIT: fallback treatment staging also obeys Hold Position
 				continue
 			var/staging_distance = get_dist(tied_human, staging_turf)
 			if(staging_distance >= best_distance)

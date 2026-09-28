@@ -24,6 +24,12 @@
 	// Cover isn't working. Charge!
 	end_cover()
 
+// DemonicLynx for BandaMarines
+// SS220 EDIT AI - START: cover destinations must remain real floor positions, not scenery or doors
+/datum/human_ai_brain/proc/is_valid_cover_destination(turf/candidate)
+	return quick_order_step_within_boundary(candidate) && human_ai_turf_is_safe(candidate, TRUE, FALSE) // SS220 EDIT: cover must be safe and remain inside a Quick Order boundary
+// SS220 EDIT AI - END
+
 /// Try to get the AI to find a suitable cover tile based on the angle a projectile came from.
 /datum/human_ai_brain/proc/try_cover(angle, atom/source)
 	if(!COOLDOWN_FINISHED(src, cover_search_cooldown))
@@ -86,39 +92,33 @@
 	while(queue_index <= length(scan_queue) && length(turf_dict) < HUMAN_AI_COVER_SCAN_LIMIT)
 		var/turf/scan_turf = scan_queue[queue_index++]
 		var/first_iteration = (scan_turf == start_turf)
-		turf_dict[scan_turf] = 0
-
-		var/tile_blocked = FALSE
-		for(var/atom/movable/thing as anything in scan_turf.contents)
-			if(!thing.density || istype(thing, /obj/structure/barricade))
-				continue
-			turf_dict[scan_turf] -= 1000
-			// DemonicLynx for BandaMarines
-			tile_blocked = TRUE
-			break
+		var/valid_destination = is_valid_cover_destination(scan_turf)
+		if(valid_destination)
+			turf_dict[scan_turf] = 0
 
 		// DemonicLynx for BandaMarines
-		// The starting turf contains the AI itself. Score it, but still expand from it.
-		if(tile_blocked && !first_iteration)
+		// Expand from the AI's current turf even if scenery already overlaps it, but never offer that turf to squadmates.
+		if(!valid_destination && !first_iteration)
 			continue
 
-		// DemonicLynx for BandaMarines
-		var/obj/structure/barricade/cade = locate() in scan_turf.contents
-		if(cade?.density && (cade?.dir in get_related_directions(cover_dir)))
-			turf_dict[scan_turf] += cade.projectile_coverage / 2
+		if(valid_destination)
+			// DemonicLynx for BandaMarines
+			var/obj/structure/barricade/cade = locate() in scan_turf.contents
+			if(cade?.density && (cade?.dir in get_related_directions(cover_dir)))
+				turf_dict[scan_turf] += cade.projectile_coverage / 2
 
-		var/obj/item/explosive/mine/mine = locate() in scan_turf.contents
-		if(mine)
-			if(!faction_check(mine.iff_signal))
-				turf_dict[scan_turf] -= 50
-			else
-				turf_dict[scan_turf] -= 5
+			var/obj/item/explosive/mine/mine = locate() in scan_turf.contents
+			if(mine)
+				if(!faction_check(mine.iff_signal))
+					turf_dict[scan_turf] -= 50
+				else
+					turf_dict[scan_turf] -= 5
 
-		turf_dict[scan_turf] -= get_dist(tied_human, scan_turf)
-		if(current_target)
-			turf_dict[scan_turf] += get_dist(current_target, scan_turf) * 0.5
-			if(get_dir(current_target, scan_turf) in get_related_directions(cover_dir))
-				turf_dict[scan_turf] -= 20
+			turf_dict[scan_turf] -= get_dist(tied_human, scan_turf)
+			if(current_target)
+				turf_dict[scan_turf] += get_dist(current_target, scan_turf) * 0.5
+				if(get_dir(current_target, scan_turf) in get_related_directions(cover_dir))
+					turf_dict[scan_turf] -= 20
 
 		for(var/cardinal in shuffle(GLOB.cardinals))
 			var/turf/nearby_turf = get_step(scan_turf, cardinal)
@@ -129,13 +129,14 @@
 				continue
 
 			if(istype(nearby_turf, /turf/closed))
-				turf_dict[scan_turf] += 2
-				if(cardinal in get_related_directions(cover_dir))
-					turf_dict[scan_turf] += 8
+				if(valid_destination)
+					turf_dict[scan_turf] += 2
+					if(cardinal in get_related_directions(cover_dir))
+						turf_dict[scan_turf] += 8
 				continue
 
 			var/obj/structure/reagent_dispensers/fueltank/tank = locate() in nearby_turf.contents
-			if(tank)
+			if(tank && valid_destination)
 				turf_dict[scan_turf] -= 10
 
 			if(length(scan_queue) >= HUMAN_AI_COVER_SCAN_LIMIT || queued_turfs[nearby_turf])
@@ -144,7 +145,8 @@
 			scan_queue += nearby_turf
 
 #ifdef TESTING
-		scan_turf.maptext = "<h2>[turf_dict[scan_turf]]</h2>"
+		if(valid_destination)
+			scan_turf.maptext = "<h2>[turf_dict[scan_turf]]</h2>"
 #endif
 
 	return TRUE
@@ -161,6 +163,10 @@
 	for(var/turf/T as anything in turf_dict)
 		// DemonicLynx for BandaMarines
 		if(get_dist(tied_human, T) > HUMAN_AI_COVER_SEARCH_RANGE) // SS220 EDIT: squad-shared scans cannot move this AI farther than three tiles
+			continue
+		// DemonicLynx for BandaMarines
+		// SS220 EDIT: shared scans can be stale, so validate again for this specific AI.
+		if(!is_valid_cover_destination(T))
 			continue
 		var/weight = turf_dict[T]
 		if(weight > most_weight)

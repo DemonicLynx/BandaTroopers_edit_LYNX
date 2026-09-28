@@ -1,6 +1,202 @@
 // DemonicLynx for BandaMarines
 #define HUMAN_AI_TEST_COVER_SCAN_LIMIT 198
 
+// DemonicLynx for BandaMarines
+// SS220 EDIT - START: fractional armor slowdown must survive subsystem timing quantization
+/datum/unit_test/human_ai_movement_delay_remainder
+
+/datum/unit_test/human_ai_movement_delay_remainder/Run()
+	var/mob/living/carbon/human/ai_human = allocate(/mob/living/carbon/human, run_loc_floor_bottom_left)
+	var/datum/human_ai_brain/brain = allocate(/datum/human_ai_brain, ai_human)
+
+	brain.ai_move_delay = 2.5
+	TEST_ASSERT_EQUAL(brain.schedule_next_move(4, 2.5, 2), 5, "Human AI discarded valid movement-delay remainder from a late subsystem tick.")
+
+	brain.ai_move_delay = 1
+	TEST_ASSERT_EQUAL(brain.schedule_next_move(100, 2.5, 2), 102.5, "Human AI banked stale idle time into its next movement deadline.")
+
+	brain.ai_move_delay = 3
+	TEST_ASSERT(brain.schedule_next_move(4, 0.5, 2) > 4, "Human AI scheduled more than one movement step in the same tick.")
+// SS220 EDIT - END
+
+// DemonicLynx for BandaMarines
+// SS220 EDIT - START: stairs and handrails are safe traversal interactions, never standing scenery
+/datum/unit_test/human_ai_structure_traversal
+
+/datum/unit_test/human_ai_structure_traversal/Run()
+	var/turf/start_turf = run_loc_floor_bottom_left
+	var/mob/living/carbon/human/ai_human = allocate(/mob/living/carbon/human, start_turf)
+	var/datum/human_ai_brain/brain = allocate(/datum/human_ai_brain, ai_human)
+
+	var/turf/stairs_turf = get_step(start_turf, EAST)
+	TEST_ASSERT_NOTNULL(stairs_turf, "Human AI traversal test area must contain a stairs turf.")
+	allocate(/obj/structure/stairs, stairs_turf)
+	TEST_ASSERT(!brain.human_ai_turf_is_safe(stairs_turf), "Human AI accepted stairs as an unrestricted standing destination.")
+	TEST_ASSERT(brain.human_ai_turf_is_safe(stairs_turf, FALSE, TRUE, TRUE), "Human AI rejected stairs in traversal-only safety mode.")
+	brain.ai_move_delay = 0
+	TEST_ASSERT(brain.try_adjacent_move_to_turf(stairs_turf), "Human AI did not traverse a stairs structure.")
+	TEST_ASSERT_EQUAL(get_turf(ai_human), stairs_turf, "Human AI failed to finish its stairs traversal on the expected turf.")
+	TEST_ASSERT(isturf(ai_human.loc), "Human AI entered the stairs object instead of remaining on a turf.")
+
+	var/turf/ladder_turf = get_step(stairs_turf, EAST)
+	TEST_ASSERT_NOTNULL(ladder_turf, "Human AI traversal test area must contain a ladder turf.")
+	allocate(/obj/structure/ladder, ladder_turf)
+	TEST_ASSERT(!brain.human_ai_turf_is_safe(ladder_turf), "Human AI accepted a ladder as an unrestricted standing destination.")
+	TEST_ASSERT(brain.human_ai_turf_is_safe(ladder_turf, FALSE, TRUE, TRUE), "Human AI rejected a ladder in traversal-only safety mode.")
+	brain.ai_move_delay = 0
+	TEST_ASSERT(brain.try_adjacent_move_to_turf(ladder_turf), "Human AI did not traverse a ladder structure.")
+	TEST_ASSERT_EQUAL(get_turf(ai_human), ladder_turf, "Human AI failed to finish its ladder traversal on the expected turf.")
+	TEST_ASSERT(isturf(ai_human.loc), "Human AI entered the ladder object instead of remaining on a turf.")
+
+	// DemonicLynx for BandaMarines: map staircases may be dense ON_BORDER platform cuts rather than /obj/structure/stairs.
+	var/turf/platform_start_turf = get_step(start_turf, EAST)
+	var/turf/platform_stair_turf = get_step(platform_start_turf, NORTH)
+	var/turf/platform_landing_turf = get_step(platform_stair_turf, NORTH)
+	TEST_ASSERT_NOTNULL(platform_start_turf, "Human AI traversal test area must contain a platform stair starting turf.")
+	TEST_ASSERT_NOTNULL(platform_stair_turf, "Human AI traversal test area must contain a platform stair turf.")
+	TEST_ASSERT_NOTNULL(platform_landing_turf, "Human AI traversal test area must contain a platform stair landing turf.")
+	var/mob/living/carbon/human/platform_human = allocate(/mob/living/carbon/human, platform_start_turf)
+	var/datum/human_ai_brain/platform_brain = allocate(/datum/human_ai_brain, platform_human)
+	var/obj/structure/platform/stair_cut/platform_stairs = allocate(/obj/structure/platform/stair_cut, platform_stair_turf)
+	platform_stairs.setDir(NORTH)
+	var/obj/structure/platform/platform_entry = allocate(/obj/structure/platform, platform_stair_turf)
+	platform_entry.setDir(SOUTH)
+	TEST_ASSERT(!platform_brain.human_ai_turf_is_safe(platform_stair_turf), "Human AI accepted platform stairs as an unrestricted standing destination.")
+	TEST_ASSERT(platform_brain.human_ai_turf_is_safe(platform_stair_turf, FALSE, TRUE, TRUE), "Human AI rejected composite platform stairs in traversal-only safety mode.")
+	var/list/platform_interactions = platform_brain.get_adjacent_move_interactions(platform_stair_turf)
+	TEST_ASSERT(!isnull(platform_interactions) && (platform_entry in platform_interactions), "Human AI path validation did not identify the composite platform stair entry interaction.")
+	platform_brain.ai_move_delay = 0
+	TEST_ASSERT(platform_brain.complete_adjacent_move_to_turf(platform_stair_turf, TRUE, platform_interactions), "Human AI did not begin climbing onto the composite platform stairs.")
+	sleep(platform_entry.climb_delay + 2)
+	TEST_ASSERT_EQUAL(get_turf(platform_human), platform_stair_turf, "Human AI did not finish climbing onto the composite platform stairs.")
+	platform_interactions = platform_brain.get_adjacent_move_interactions(platform_landing_turf)
+	TEST_ASSERT(!isnull(platform_interactions) && (platform_stairs in platform_interactions), "Human AI path validation did not identify the platform stair exit interaction.")
+	platform_brain.ai_move_delay = 0
+	TEST_ASSERT(platform_brain.complete_adjacent_move_to_turf(platform_landing_turf, TRUE, platform_interactions), "Human AI did not begin leaving the composite platform stairs.")
+	sleep(platform_stairs.climb_delay + 2)
+	TEST_ASSERT_EQUAL(get_turf(platform_human), platform_landing_turf, "Human AI did not finish crossing the platform stairs.")
+	TEST_ASSERT(isturf(platform_human.loc), "Human AI entered the platform stair object instead of remaining on a turf.")
+
+	var/turf/ordinary_platform_turf = get_step(ladder_turf, EAST)
+	TEST_ASSERT_NOTNULL(ordinary_platform_turf, "Human AI traversal test area must contain an ordinary platform turf.")
+	var/obj/structure/platform/metal/stair_cut/metal_platform_stairs = allocate(/obj/structure/platform/metal/stair_cut, ordinary_platform_turf)
+	TEST_ASSERT(brain.human_ai_turf_is_safe(ordinary_platform_turf, FALSE, TRUE, TRUE), "Human AI rejected metal platform stairs in traversal-only safety mode.")
+	qdel(metal_platform_stairs)
+	var/obj/structure/platform/stone/stair_cut/stone_platform_stairs = allocate(/obj/structure/platform/stone/stair_cut, ordinary_platform_turf)
+	TEST_ASSERT(brain.human_ai_turf_is_safe(ordinary_platform_turf, FALSE, TRUE, TRUE), "Human AI rejected stone platform stairs in traversal-only safety mode.")
+	qdel(stone_platform_stairs)
+	allocate(/obj/structure/platform, ordinary_platform_turf)
+	TEST_ASSERT(!brain.human_ai_turf_is_safe(ordinary_platform_turf), "Human AI accepted an ordinary platform as a standing destination.")
+	TEST_ASSERT(brain.human_ai_turf_is_safe(ordinary_platform_turf, FALSE, TRUE, TRUE), "Human AI rejected a player-climbable platform as a traversal step.")
+
+	// DemonicLynx for BandaMarines: non-dense scenery is traversable but never a final standing position.
+	var/turf/flora_turf = get_step(platform_landing_turf, EAST)
+	TEST_ASSERT_NOTNULL(flora_turf, "Human AI traversal test area must contain a flora turf.")
+	TEST_ASSERT(istype(flora_turf, /turf/open/floor), "Human AI traversal regression must run on an open floor turf.")
+	TEST_ASSERT(brain.human_ai_turf_is_safe(flora_turf, FALSE, TRUE, TRUE), "Human AI rejected an unobstructed open floor turf.")
+	var/obj/structure/flora/grass/passable_grass = allocate(/obj/structure/flora/grass, flora_turf)
+	TEST_ASSERT(!brain.human_ai_turf_is_safe(flora_turf), "Human AI accepted passable grass as an unrestricted standing destination.")
+	TEST_ASSERT(brain.human_ai_turf_is_safe(flora_turf, FALSE, TRUE, TRUE), "Human AI rejected passable grass as a traversal step.")
+	qdel(passable_grass)
+	var/obj/structure/flora/forest/obscuring_forest = allocate(/obj/structure/flora/forest, flora_turf)
+	TEST_ASSERT(!brain.human_ai_turf_is_safe(flora_turf), "Human AI accepted Halo forest foliage as a standing destination.")
+	TEST_ASSERT(brain.human_ai_turf_is_safe(flora_turf, FALSE, TRUE, TRUE), "Human AI treated non-dense Halo forest foliage as an invisible wall.")
+	qdel(obscuring_forest)
+	var/obj/structure/flora/bush/obscuring_bush = allocate(/obj/structure/flora/bush, flora_turf)
+	TEST_ASSERT(!brain.human_ai_turf_is_safe(flora_turf), "Human AI accepted a bush as a standing destination.")
+	TEST_ASSERT(brain.human_ai_turf_is_safe(flora_turf, FALSE, TRUE, TRUE), "Human AI treated a non-dense bush as an invisible wall.")
+	qdel(obscuring_bush)
+	var/obj/structure/flora/grass/tallgrass/obscuring_tallgrass = allocate(/obj/structure/flora/grass/tallgrass, flora_turf)
+	TEST_ASSERT(!brain.human_ai_turf_is_safe(flora_turf), "Human AI accepted tall grass as a standing destination.")
+	TEST_ASSERT(brain.human_ai_turf_is_safe(flora_turf, FALSE, TRUE, TRUE), "Human AI treated non-dense tall grass as an invisible wall.")
+	qdel(obscuring_tallgrass)
+	allocate(/obj/structure/flora/tree, flora_turf)
+	TEST_ASSERT(!brain.human_ai_turf_is_safe(flora_turf, FALSE, TRUE, TRUE), "Human AI traversal mode accepted dense flora.")
+
+	var/turf/underfloor_turf = get_step(flora_turf, SOUTH)
+	TEST_ASSERT_NOTNULL(underfloor_turf, "Human AI traversal test area must contain an underfloor infrastructure turf.")
+	var/obj/structure/pipes/underfloor_pipe = allocate(/obj/structure/pipes, underfloor_turf)
+	TEST_ASSERT(brain.human_ai_turf_is_safe(underfloor_turf), "Human AI treated a non-dense underfloor pipe as a blocking structure.")
+	qdel(underfloor_pipe)
+	var/obj/structure/cable/underfloor_cable = allocate(/obj/structure/cable, underfloor_turf)
+	TEST_ASSERT(brain.human_ai_turf_is_safe(underfloor_turf), "Human AI treated a non-dense underfloor cable as a blocking structure.")
+	qdel(underfloor_cable)
+	var/obj/structure/disposalpipe/underfloor_disposal = allocate(/obj/structure/disposalpipe, underfloor_turf)
+	TEST_ASSERT(brain.human_ai_turf_is_safe(underfloor_turf), "Human AI treated a non-dense disposal pipe as a blocking structure.")
+	qdel(underfloor_disposal)
+	var/obj/structure/prop/floor_plane_prop = allocate(/obj/structure/prop, underfloor_turf)
+	floor_plane_prop.density = FALSE
+	floor_plane_prop.plane = FLOOR_PLANE
+	TEST_ASSERT(!brain.human_ai_turf_is_safe(underfloor_turf), "Human AI accepted arbitrary floor scenery as a standing destination.")
+	TEST_ASSERT(brain.human_ai_turf_is_safe(underfloor_turf, FALSE, TRUE, TRUE), "Human AI treated non-dense floor scenery as an invisible wall.")
+	qdel(floor_plane_prop)
+
+	var/obj/structure/bed/chair/passable_chair = allocate(/obj/structure/bed/chair, underfloor_turf)
+	passable_chair.density = FALSE
+	TEST_ASSERT(!brain.human_ai_turf_is_safe(underfloor_turf), "Human AI accepted a chair as a standing destination.")
+	TEST_ASSERT(brain.human_ai_turf_is_safe(underfloor_turf, FALSE, TRUE, TRUE), "Human AI rejected a non-dense chair that a player can walk through.")
+	qdel(passable_chair)
+
+	var/obj/structure/window/intact_window = allocate(/obj/structure/window, underfloor_turf)
+	TEST_ASSERT(!brain.human_ai_turf_is_safe(underfloor_turf, FALSE, TRUE, TRUE), "Human AI traversal mode accepted intact glass.")
+	qdel(intact_window)
+	var/obj/structure/machinery/cm_vending/solid_vendor = allocate(/obj/structure/machinery/cm_vending, underfloor_turf)
+	TEST_ASSERT(!brain.human_ai_turf_is_safe(underfloor_turf, FALSE, TRUE, TRUE), "Human AI traversal mode accepted a vending machine.")
+	qdel(solid_vendor)
+
+	var/obj/structure/window_frame/broken_window_frame = allocate(/obj/structure/window_frame, underfloor_turf)
+	TEST_ASSERT(!brain.human_ai_turf_is_safe(underfloor_turf), "Human AI accepted a broken window frame as a standing destination.")
+	TEST_ASSERT(brain.human_ai_turf_is_safe(underfloor_turf, FALSE, TRUE, TRUE), "Human AI rejected a player-climbable broken window frame.")
+	qdel(broken_window_frame)
+	var/obj/structure/barricade/passable_barricade = allocate(/obj/structure/barricade, underfloor_turf)
+	TEST_ASSERT(brain.human_ai_turf_is_safe(underfloor_turf, FALSE, TRUE, TRUE), "Human AI rejected a player-climbable barricade.")
+	passable_barricade.is_wired = TRUE
+	TEST_ASSERT(brain.human_ai_turf_is_safe(underfloor_turf, FALSE, TRUE, TRUE), "Human AI rejected a wired barricade that remains player-climbable.")
+	qdel(passable_barricade)
+
+	// DemonicLynx for BandaMarines: retain a generic table path node until canonical delayed climbing reaches it.
+	var/turf/table_start_turf = get_step(start_turf, SOUTH)
+	var/turf/table_turf = get_step(table_start_turf, EAST)
+	var/turf/table_landing_turf = get_step(table_turf, EAST)
+	TEST_ASSERT_NOTNULL(table_start_turf, "Human AI table traversal test requires a starting turf.")
+	TEST_ASSERT_NOTNULL(table_turf, "Human AI table traversal test requires a table turf.")
+	TEST_ASSERT_NOTNULL(table_landing_turf, "Human AI table traversal test requires a landing turf.")
+	var/mob/living/carbon/human/table_human = allocate(/mob/living/carbon/human, table_start_turf)
+	var/datum/human_ai_brain/table_brain = allocate(/datum/human_ai_brain, table_human)
+	var/obj/structure/surface/table/climbed_table = allocate(/obj/structure/surface/table, table_turf)
+	climbed_table.climb_delay = 1
+	TEST_ASSERT(!table_brain.human_ai_turf_is_safe(table_turf), "Human AI accepted a table as a standing destination.")
+	TEST_ASSERT(table_brain.human_ai_turf_is_safe(table_turf, FALSE, TRUE, TRUE), "Human AI rejected a player-climbable table.")
+	table_brain.current_path = list(table_landing_turf, table_turf)
+	table_brain.ai_move_delay = 0
+	TEST_ASSERT(table_brain.follow_current_path_to_turf(table_landing_turf), "Human AI did not start its canonical table climb.")
+	TEST_ASSERT_EQUAL(length(table_brain.current_path), 2, "Human AI consumed the table path node before delayed climbing reached it.")
+	sleep(3)
+	TEST_ASSERT_EQUAL(get_turf(table_human), table_turf, "Human AI did not finish climbing onto the table turf.")
+	TEST_ASSERT(isturf(table_human.loc), "Human AI entered the table object instead of remaining on its turf.")
+	TEST_ASSERT(table_brain.follow_current_path_to_turf(table_landing_turf), "Human AI did not consume the reached table path node.")
+	TEST_ASSERT_EQUAL(length(table_brain.current_path), 1, "Human AI retained a table node after physically reaching it.")
+	table_brain.ai_move_delay = 0
+	TEST_ASSERT(table_brain.follow_current_path_to_turf(table_landing_turf), "Human AI did not continue beyond the climbed table.")
+	TEST_ASSERT_EQUAL(get_turf(table_human), table_landing_turf, "Human AI stopped and remained hidden on the climbed table.")
+
+	var/mob/living/carbon/human/vaulting_human = allocate(/mob/living/carbon/human, start_turf)
+	var/datum/human_ai_brain/vaulting_brain = allocate(/datum/human_ai_brain, vaulting_human)
+	var/turf/vault_target = get_step(start_turf, NORTH)
+	TEST_ASSERT_NOTNULL(vault_target, "Human AI traversal test area must contain a handrail destination.")
+	var/obj/structure/barricade/handrail/handrail = allocate(/obj/structure/barricade/handrail, start_turf)
+	handrail.setDir(NORTH)
+	TEST_ASSERT(!vaulting_brain.human_ai_turf_is_safe(start_turf, TRUE), "Human AI accepted a handrail as an unrestricted standing destination.")
+	TEST_ASSERT(vaulting_brain.human_ai_turf_is_safe(start_turf, TRUE, TRUE, TRUE), "Human AI rejected a handrail in traversal-only safety mode.")
+	var/list/vault_interactions = vaulting_brain.get_adjacent_move_interactions(vault_target)
+	TEST_ASSERT(!isnull(vault_interactions) && (handrail in vault_interactions), "Human AI path validation did not identify the handrail climb interaction.")
+	vaulting_brain.ai_move_delay = 0
+	TEST_ASSERT(vaulting_brain.complete_adjacent_move_to_turf(vault_target, TRUE, vault_interactions), "Human AI did not begin its handrail vault.")
+	sleep(handrail.climb_delay + 2)
+	TEST_ASSERT_EQUAL(get_turf(vaulting_human), vault_target, "Human AI did not finish vaulting to the opposite side of the handrail.")
+	TEST_ASSERT(isturf(vaulting_human.loc), "Human AI entered the handrail object instead of remaining on a turf.")
+// SS220 EDIT - END
+
 /datum/unit_test/human_ai_core_behaviors
 
 /datum/unit_test/human_ai_core_behaviors/Run()
@@ -208,6 +404,33 @@
 	TEST_ASSERT(length(cover_scores) > 1, "Human AI cover scan did not expand beyond its starting turf.")
 	TEST_ASSERT(length(cover_scores) <= HUMAN_AI_TEST_COVER_SCAN_LIMIT, "Human AI cover scan exceeded its bounded tile limit.")
 
+	// DemonicLynx for BandaMarines
+	// SS220 EDIT - START: scenery and doors are traversal concerns, never final defensive posts
+	var/turf/table_turf = get_step(ai_human, EAST)
+	TEST_ASSERT_NOTNULL(table_turf, "Human AI cover test area must contain a table turf.")
+	var/obj/structure/surface/table/invalid_table = allocate(/obj/structure/surface/table, table_turf)
+	TEST_ASSERT(!brain.is_valid_cover_destination(table_turf), "Human AI accepted a table as a defensive destination.")
+	cover_scores = list()
+	TEST_ASSERT(brain.scan_turfs_for_cover(get_turf(ai_human), cover_scores, SOUTH), "Human AI table regression cover scan did not complete.")
+	TEST_ASSERT(!(table_turf in cover_scores), "Human AI retained a table turf in its cover candidates.")
+
+	var/turf/door_turf = get_step(ai_human, WEST)
+	TEST_ASSERT_NOTNULL(door_turf, "Human AI cover test area must contain a blast-door turf.")
+	var/obj/structure/machinery/door/poddoor/invalid_door = allocate(/obj/structure/machinery/door/poddoor, door_turf)
+	invalid_door.density = FALSE
+	TEST_ASSERT(!brain.is_valid_cover_destination(door_turf), "Human AI accepted an open blast door as a defensive destination.")
+	TEST_ASSERT(brain.human_ai_turf_is_safe(door_turf, FALSE, TRUE), "Human AI rejected an open door as a traversal step.")
+
+	var/turf/computer_turf = get_step(ai_human, NORTH)
+	TEST_ASSERT_NOTNULL(computer_turf, "Human AI interaction test area must contain a computer turf.")
+	var/obj/structure/machinery/computer/invalid_computer = allocate(/obj/structure/machinery/computer, computer_turf)
+	TEST_ASSERT_EQUAL(invalid_computer.human_ai_obstacle(ai_human, brain, NORTH, computer_turf), INFINITY, "Human AI pathfinding did not reject a solid computer.")
+	TEST_ASSERT_EQUAL(invalid_computer.human_ai_act(ai_human, brain), FALSE, "Human AI attempted to operate an unrelated computer during navigation.")
+	qdel(invalid_table)
+	qdel(invalid_door)
+	qdel(invalid_computer)
+	// SS220 EDIT - END
+
 #undef HUMAN_AI_TEST_COVER_SCAN_LIMIT
 
 /datum/unit_test/human_ai_medic_scheduler
@@ -351,12 +574,184 @@
 	var/turf/cover_neighbor = get_step(cover_candidate, EAST)
 	TEST_ASSERT_NOTNULL(cover_neighbor, "Human AI idle-position test area must contain an adjacent cover turf.")
 	var/cover_score_before = first_brain.get_idle_position_cover_score(cover_candidate)
-	allocate(/obj/structure/surface/table, cover_neighbor)
+	var/obj/structure/surface/table/idle_test_table = allocate(/obj/structure/surface/table, cover_neighbor)
 	var/cover_score_after = first_brain.get_idle_position_cover_score(cover_candidate)
 	TEST_ASSERT(cover_score_after > cover_score_before, "Human AI idle-position scoring did not prefer newly added physical cover.")
+	TEST_ASSERT(first_brain.human_ai_is_idle_cover_anchor(idle_test_table), "Human AI did not recognize a table as an approved idle-cover anchor.")
+	var/obj/structure/closet/crate/idle_test_crate = allocate(/obj/structure/closet/crate, cover_neighbor)
+	var/obj/structure/largecrate/idle_test_large_crate = allocate(/obj/structure/largecrate, cover_neighbor)
+	var/obj/structure/barricade/idle_test_barricade = allocate(/obj/structure/barricade, cover_neighbor)
+	TEST_ASSERT(first_brain.human_ai_is_idle_cover_anchor(idle_test_crate), "Human AI did not recognize a crate as an approved idle-cover anchor.")
+	TEST_ASSERT(first_brain.human_ai_is_idle_cover_anchor(idle_test_large_crate), "Human AI did not recognize a large crate as an approved idle-cover anchor.")
+	TEST_ASSERT(first_brain.human_ai_is_idle_cover_anchor(idle_test_barricade), "Human AI did not recognize a barricade as an approved idle-cover anchor.")
+	TEST_ASSERT_EQUAL(first_brain.score_idle_defensive_position(cover_neighbor), -INFINITY, "Human AI accepted a table turf as an idle defensive post.")
+	TEST_ASSERT(first_brain.idle_defensive_step_is_blocked(cover_neighbor), "Human AI idle movement accepted a table as an intermediate step.")
+	TEST_ASSERT(first_brain.human_ai_idle_position_is_clear(cover_candidate), "Human AI rejected an otherwise empty idle standing turf.")
+	var/obj/item/device/flashlight/lamp/idle_position_obstacle = allocate(/obj/item/device/flashlight/lamp, cover_candidate)
+	TEST_ASSERT(!first_brain.human_ai_idle_position_is_clear(cover_candidate), "Human AI considered an object-occupied idle standing turf clear.")
+	TEST_ASSERT_EQUAL(first_brain.score_idle_defensive_position(cover_candidate), -INFINITY, "Human AI reserved an occupied turf in front of approved cover.")
+	qdel(idle_position_obstacle)
+
+	var/turf/door_candidate = get_step(cluster_turf, WEST)
+	TEST_ASSERT_NOTNULL(door_candidate, "Human AI idle-position test area must contain a door turf.")
+	var/obj/structure/machinery/door/poddoor/idle_test_door = allocate(/obj/structure/machinery/door/poddoor, door_candidate)
+	idle_test_door.density = FALSE
+	TEST_ASSERT(first_brain.human_ai_is_idle_cover_anchor(idle_test_door), "Human AI did not recognize a door as an approved idle-cover anchor.")
+	TEST_ASSERT_EQUAL(first_brain.score_idle_defensive_position(door_candidate), -INFINITY, "Human AI accepted an open blast door as an idle defensive post.")
+	TEST_ASSERT(first_brain.idle_defensive_step_is_blocked(door_candidate), "Human AI idle movement accepted an open blast door as an intermediate step.")
+
+	var/turf/non_dense_prop_turf = get_step(cluster_turf, SOUTH)
+	TEST_ASSERT_NOTNULL(non_dense_prop_turf, "Human AI navigation test area must contain a prop turf.")
+	var/obj/structure/prop/non_dense_prop = allocate(/obj/structure/prop, non_dense_prop_turf)
+	non_dense_prop.density = FALSE
+	non_dense_prop.projectile_coverage = PROJECTILE_COVERAGE_HIGH
+	TEST_ASSERT(!first_brain.human_ai_is_idle_cover_anchor(non_dense_prop), "Human AI accepted a generic high-coverage prop as an idle-cover anchor.")
+	TEST_ASSERT(!first_brain.human_ai_turf_is_safe(non_dense_prop_turf), "Human AI accepted a non-dense structure as a standing tile.")
+	TEST_ASSERT(isnull(first_brain.get_adjacent_move_interactions(non_dense_prop_turf)), "Human AI movement accepted a step onto a non-dense structure.")
+
+	var/turf/uncovered_candidate
+	for(var/turf/candidate as anything in range(3, cluster_turf))
+		if(candidate != cluster_turf && first_brain.human_ai_turf_is_safe(candidate) && first_brain.get_idle_position_cover_score(candidate) <= 0)
+			uncovered_candidate = candidate
+			break
+	TEST_ASSERT_NOTNULL(uncovered_candidate, "Human AI idle-position test area must contain an uncovered clean turf.")
+	TEST_ASSERT_EQUAL(first_brain.score_idle_defensive_position(uncovered_candidate), -INFINITY, "Human AI accepted an idle post with no approved cover anchor.")
+
+	first_human.forceMove(cover_neighbor)
+	TEST_ASSERT_EQUAL(GLOB.AI_actions[/datum/ai_action/leave_unsafe_turf].get_weight(first_brain), INFINITY, "Human AI did not prioritize leaving a table turf.")
+	var/turf/egress_turf = first_brain.get_unsafe_turf_egress_destination()
+	TEST_ASSERT_NOTNULL(egress_turf, "Human AI found no clean adjacent egress from a table turf.")
+	TEST_ASSERT(first_brain.human_ai_turf_is_safe(egress_turf), "Human AI selected another scenery turf as its emergency egress destination.")
+	first_human.forceMove(cluster_turf)
 
 	first_brain.hold_position = TRUE
 	TEST_ASSERT(!first_brain.can_seek_idle_defensive_position(), "Human AI idle redistribution ignored a hold-position order.")
+	var/datum/ai_action/leave_unsafe_turf/egress_action = allocate(/datum/ai_action/leave_unsafe_turf, first_brain)
+	TEST_ASSERT(!first_brain.quick_order_blocks_action(egress_action), "Quick Order: Hold Position blocked emergency egress from scenery.")
+// SS220 EDIT - END
+
+// DemonicLynx for BandaMarines
+// SS220 EDIT - START: Quick Orders preempt movement immediately and Hold persists until Approach
+/datum/unit_test/human_ai_quick_orders
+
+/datum/unit_test/human_ai_quick_orders/Run()
+	var/turf/start_turf = run_loc_floor_bottom_left
+	var/mob/living/carbon/human/ai_human = allocate(/mob/living/carbon/human, start_turf)
+	ai_human.faction = FACTION_UNSC
+	var/datum/human_ai_brain/brain = allocate(/datum/human_ai_brain, ai_human)
+
+	var/turf/old_destination = get_step(start_turf, NORTH)
+	var/turf/approach_flora_turf = get_step(start_turf, EAST)
+	var/turf/new_destination = get_step(approach_flora_turf, EAST)
+	TEST_ASSERT_NOTNULL(old_destination, "Human AI Quick Order test area must contain an old destination.")
+	TEST_ASSERT_NOTNULL(approach_flora_turf, "Human AI Quick Order test area must contain a passable flora step.")
+	TEST_ASSERT_NOTNULL(new_destination, "Human AI Quick Order test area must contain a destination two tiles east.")
+	var/obj/structure/flora/grass/approach_grass = allocate(/obj/structure/flora/grass, approach_flora_turf)
+	brain.quick_approach = old_destination
+	var/datum/ai_action/quick_approach/stale_approach = allocate(/datum/ai_action/quick_approach, brain)
+	brain.ongoing_actions += stale_approach
+	brain.current_path = list(old_destination)
+	brain.ai_move_delay = world.time + 10 SECONDS
+	var/mob/living/carbon/human/combat_hostile = allocate(/mob/living/carbon/human, old_destination)
+	combat_hostile.faction = FACTION_COVENANT
+	brain.set_target(combat_hostile)
+
+	var/initial_distance = get_dist(ai_human, new_destination)
+	brain.apply_quick_approach_order(new_destination)
+	TEST_ASSERT(!brain.hold_position, "Quick Order: Approach did not release Hold Position.")
+	TEST_ASSERT_EQUAL(brain.quick_approach, new_destination, "Destroying the stale movement action erased the new Approach destination.")
+	TEST_ASSERT(QDELETED(stale_approach) || !(stale_approach in brain.ongoing_actions), "Quick Order: Approach did not preempt the stale movement action.")
+	TEST_ASSERT(!brain.current_path, "Quick Order: Approach retained the stale navigation path.")
+	TEST_ASSERT_EQUAL(brain.target_turf, get_turf(combat_hostile), "Quick Order: Approach erased the current combat target turf needed for concurrent firing.")
+	TEST_ASSERT(get_dist(ai_human, new_destination) < initial_distance, "Quick Order: Approach did not make its immediate local movement step.")
+	TEST_ASSERT_EQUAL(get_turf(ai_human), approach_flora_turf, "Quick Order: Approach treated passable flora as an invisible wall.")
+	qdel(approach_grass)
+	brain.process(0)
+	TEST_ASSERT(brain.quick_approach, "Quick Order: Approach was not retained for normal scheduler/pathfinder completion.")
+	var/list/quick_approach_conflicts = GLOB.AI_actions[/datum/ai_action/quick_approach].get_conflicts(brain)
+	TEST_ASSERT(!(/datum/ai_action/fire_at_target in quick_approach_conflicts), "Quick Order: Approach conflicts with hand-only combat firing.")
+	var/datum/ai_action/quick_approach/interrupted_approach = allocate(/datum/ai_action/quick_approach, brain)
+	qdel(interrupted_approach)
+	TEST_ASSERT_EQUAL(brain.quick_approach, new_destination, "A temporary combat interruption erased the persistent Quick Order: Approach destination.")
+
+	var/turf/unreachable_destination = get_step(get_turf(ai_human), NORTH)
+	TEST_ASSERT_NOTNULL(unreachable_destination, "Human AI Quick Order test area must contain an unreachable adjacent destination.")
+	var/obj/structure/window/unreachable_blocker = allocate(/obj/structure/window, unreachable_destination)
+	brain.quick_approach = unreachable_destination
+	var/datum/ai_action/quick_approach/unreachable_approach = allocate(/datum/ai_action/quick_approach, brain)
+	for(var/i in 1 to 3)
+		unreachable_approach.trigger_action()
+	TEST_ASSERT_NULL(brain.quick_approach, "Human AI retained an unreachable Approach order after its bounded failure limit.")
+	qdel(unreachable_approach)
+	qdel(unreachable_blocker)
+
+	var/obj/structure/surface/table/unsafe_order_table = allocate(/obj/structure/surface/table, unreachable_destination)
+	brain.apply_quick_approach_order(unreachable_destination)
+	TEST_ASSERT_NOTEQUAL(brain.quick_approach, unreachable_destination, "Quick Order: Approach retained a table turf as its final destination.")
+	TEST_ASSERT(!brain.quick_approach || brain.human_ai_turf_is_safe(brain.quick_approach), "Quick Order: Approach did not normalize scenery to a safe nearby floor turf.")
+	qdel(unsafe_order_table)
+	brain.lose_target()
+
+	brain.quick_approach = new_destination
+	var/datum/ai_action/quick_approach/active_approach = allocate(/datum/ai_action/quick_approach, brain)
+	brain.ongoing_actions += active_approach
+	brain.current_path = list(new_destination)
+	var/turf/held_turf = get_turf(ai_human)
+	var/turf/hold_boundary = get_step(held_turf, EAST)
+	var/turf/beyond_boundary = get_step(hold_boundary, EAST)
+	var/turf/hostile_turf = get_step(held_turf, WEST)
+	TEST_ASSERT_NOTNULL(hold_boundary, "Human AI Hold Position test area must contain a fallback boundary.")
+	TEST_ASSERT_NOTNULL(beyond_boundary, "Human AI Hold Position test area must contain a turf beyond the boundary.")
+	TEST_ASSERT_NOTNULL(hostile_turf, "Human AI Hold Position test area must contain a hostile turf.")
+	var/mob/living/carbon/human/hostile = allocate(/mob/living/carbon/human, hostile_turf)
+	hostile.faction = FACTION_COVENANT
+	brain.set_target(hostile)
+	brain.apply_quick_hold_position_order(hold_boundary)
+	TEST_ASSERT(brain.hold_position, "Quick Order: Hold Position did not set its persistent movement lock.")
+	TEST_ASSERT_EQUAL(brain.hold_position_turf, hold_boundary, "Quick Order: Hold Position did not store its fallback boundary.")
+	TEST_ASSERT(!brain.quick_approach, "Quick Order: Hold Position retained an Approach destination.")
+	TEST_ASSERT(QDELETED(active_approach) || !(active_approach in brain.ongoing_actions), "Quick Order: Hold Position did not immediately preempt movement.")
+	TEST_ASSERT(!brain.current_path, "Quick Order: Hold Position retained a navigation path.")
+	TEST_ASSERT(brain.quick_order_blocks_action(GLOB.AI_actions[/datum/ai_action/chase_target]), "Hold Position did not centrally block chase movement.")
+	TEST_ASSERT(!brain.quick_order_blocks_action(GLOB.AI_actions[/datum/ai_action/hold_position_retreat]), "Hold Position blocked its legal bounded retreat action.")
+	TEST_ASSERT(!brain.quick_order_blocks_action(GLOB.AI_actions[/datum/ai_action/take_cover]), "Hold Position blocked movement toward cover inside its boundary.")
+	TEST_ASSERT(!brain.quick_order_blocks_action(GLOB.AI_actions[/datum/ai_action/treat_ally]), "Hold Position blocked movement toward an injured ally inside its boundary.")
+	brain.current_cover = hold_boundary
+	var/datum/ai_action/take_cover/cover_action = GLOB.AI_actions[/datum/ai_action/take_cover]
+	var/datum/ai_action/hold_position_retreat/retreat_action = GLOB.AI_actions[/datum/ai_action/hold_position_retreat]
+	TEST_ASSERT(cover_action.get_weight(brain) >= retreat_action.get_weight(brain), "Hold Position retreat priority displaced an available cover action.")
+	brain.current_cover = null
+	TEST_ASSERT(!brain.quick_order_blocks_action(GLOB.AI_actions[/datum/ai_action/fire_at_target]), "Hold Position incorrectly blocked a non-movement combat action.")
+	TEST_ASSERT(!brain.quick_order_blocks_action(GLOB.AI_actions[/datum/ai_action/resist_burning]), "Hold Position incorrectly blocked stationary fire resistance.")
+	TEST_ASSERT(brain.hold_position_retreat_step_is_allowed(hold_boundary), "Hold Position rejected a retreat step toward its boundary.")
+	TEST_ASSERT(!brain.hold_position_retreat_step_is_allowed(beyond_boundary), "Hold Position allowed retreat beyond its assigned boundary.")
+	TEST_ASSERT(brain.quick_order_step_within_boundary(hold_boundary), "Hold Position rejected a step onto its boundary.")
+	TEST_ASSERT(!brain.quick_order_step_within_boundary(beyond_boundary), "Hold Position accepted a step across its boundary.")
+	brain.process(0)
+	TEST_ASSERT_EQUAL(get_turf(ai_human), hold_boundary, "Human AI did not retreat from the enemy toward its Hold Position boundary.")
+	TEST_ASSERT(isnull(brain.get_adjacent_move_interactions(beyond_boundary)), "Human AI path validation accepted a physical step across the Hold Position boundary.")
+	TEST_ASSERT(!brain.is_valid_cover_destination(beyond_boundary), "Human AI cover search accepted a destination across the Hold Position boundary.")
+	brain.process(0)
+	TEST_ASSERT_EQUAL(get_turf(ai_human), hold_boundary, "Human AI crossed its assigned Hold Position boundary.")
+
+	// A blocked direct retreat must choose a safe lateral route without approaching the enemy.
+	ai_human.forceMove(held_turf)
+	brain.hold_position_turf = beyond_boundary
+	brain.hold_position_previous_turf = null
+	var/obj/structure/surface/table/retreat_blocker = allocate(/obj/structure/surface/table, hold_boundary)
+	var/turf/detour_step = brain.get_hold_position_retreat_step()
+	TEST_ASSERT_NOTNULL(detour_step, "Human AI failed to find a bounded Hold Position detour around an obstacle.")
+	TEST_ASSERT_NOTEQUAL(detour_step, hold_boundary, "Human AI selected the blocked direct Hold Position retreat turf.")
+	TEST_ASSERT(get_dist(detour_step, hostile) >= get_dist(ai_human, hostile), "Human AI Hold Position detour moved closer to the enemy.")
+	TEST_ASSERT(brain.hold_position_retreat_step_is_allowed(detour_step, TRUE), "Human AI selected an invalid Hold Position detour step.")
+	qdel(retreat_blocker)
+
+	brain.target_turf = new_destination
+	brain.apply_quick_approach_order(new_destination)
+	TEST_ASSERT(!brain.hold_position, "Only Approach should release Hold Position, but the release failed.")
+	TEST_ASSERT(!brain.hold_position_origin_turf, "Quick Order: Approach did not clear the Hold Position origin.")
+	TEST_ASSERT(!brain.hold_position_turf, "Quick Order: Approach did not clear the Hold Position boundary.")
+	TEST_ASSERT(!brain.hold_position_previous_turf, "Quick Order: Approach did not clear the Hold Position detour history.")
 // SS220 EDIT - END
 
 // SS220 EDIT - START: live-grenade reaction and one-roll combat grenade behavior
@@ -413,7 +808,7 @@
 	brain.active_grenade_found = null
 	brain.in_combat = TRUE
 	brain.target_turf = hostile_turf
-	TEST_ASSERT_EQUAL(brain.combat_grenade_use_chance, 40, "Human AI carried-grenade chance is not 40 percent by default.")
+	TEST_ASSERT_EQUAL(brain.combat_grenade_use_chance, 100, "Human AI carried-grenade chance is not 100 percent by default.")
 	brain.combat_grenade_use_chance = 100
 	brain.begin_combat_grenade_decision()
 	TEST_ASSERT(brain.should_attempt_combat_grenade(), "Human AI failed a forced successful combat-grenade decision.")
@@ -421,11 +816,56 @@
 	TEST_ASSERT(brain.should_attempt_combat_grenade(), "Human AI rerolled its stored combat-grenade decision during the same encounter.")
 	var/datum/ai_action/throw_grenade/grenade_action_prototype = GLOB.AI_actions[/datum/ai_action/throw_grenade]
 	TEST_ASSERT_NOTNULL(grenade_action_prototype, "Human AI carried-grenade action was not registered.")
-	TEST_ASSERT_EQUAL(grenade_action_prototype.get_weight(brain), 20, "Human AI successful combat-grenade decision did not enable the throw action.")
+	TEST_ASSERT_EQUAL(grenade_action_prototype.get_weight(brain), 100, "Human AI successful combat-grenade decision did not prioritize the throw action.")
 	brain.combat_grenade_use_chance = 100
 	var/datum/ai_action/throw_grenade/carried_action = allocate(/datum/ai_action/throw_grenade, brain)
 	TEST_ASSERT_NOTNULL(carried_action, "Human AI failed to create its selected carried-grenade action.")
-	TEST_ASSERT(!brain.combat_grenade_selected, "Human AI did not consume its carried-grenade decision when the throw action started.")
+	TEST_ASSERT(brain.combat_grenade_selected, "Human AI consumed its successful carried-grenade decision before an actual launch.")
+	TEST_ASSERT(!carried_action.launch_grenade_to_target(ai_human, carried_grenade, hostile_turf), "Human AI launched an unprimed carried grenade.")
+	carried_grenade.active = TRUE
+	TEST_ASSERT(!carried_action.launch_grenade_to_target(ai_human, carried_grenade, hostile_turf), "Human AI launched a grenade that was not selected in its active hand.")
+	carried_grenade.active = FALSE
+
+	// DemonicLynx for BandaMarines: carried grenades stay aligned with the hostile and pass over intervening allies.
+	qdel(friendly)
+	var/mob/living/carbon/human/intervening_friendly = allocate(/mob/living/carbon/human, get_step(ai_turf, NORTH))
+	intervening_friendly.faction = FACTION_UNSC
+	TEST_ASSERT_EQUAL(carried_action.resolve_throw_target(ai_human, carried_grenade, hostile_turf), hostile_turf, "Human AI rejected a safe hostile grenade target because an ally stood in the flight path.")
+
+	var/turf/distant_hostile_turf = hostile_turf
+	for(var/i in 1 to 3)
+		distant_hostile_turf = get_step(distant_hostile_turf, NORTH)
+	TEST_ASSERT_NOTNULL(distant_hostile_turf, "Human AI grenade test area must extend beyond normal grenade range.")
+	var/turf/clamped_throw_turf = carried_action.resolve_throw_target(ai_human, carried_grenade, distant_hostile_turf)
+	TEST_ASSERT_NOTNULL(clamped_throw_turf, "Human AI failed to choose a ranged landing turf toward a distant hostile.")
+	TEST_ASSERT_EQUAL(get_dist(ai_human, clamped_throw_turf), carried_grenade.throw_range, "Human AI did not use the available grenade range toward a distant hostile.")
+	TEST_ASSERT_EQUAL(get_dir(ai_human, clamped_throw_turf), get_dir(ai_human, distant_hostile_turf), "Human AI grenade fallback was not aligned with the hostile.")
+	TEST_ASSERT(!carried_action.has_friendly_near_throw_target(clamped_throw_turf), "Human AI selected a clamped grenade landing turf inside the friendly safety radius.")
+
+	var/turf/blocker_turf = ai_turf
+	for(var/i in 1 to 3)
+		blocker_turf = get_step(blocker_turf, NORTH)
+	var/obj/structure/surface/table/trajectory_blocker = allocate(/obj/structure/surface/table, blocker_turf)
+	TEST_ASSERT_NULL(carried_action.resolve_throw_target(ai_human, carried_grenade, distant_hostile_turf), "Human AI selected a grenade trajectory through dense cover.")
+	qdel(trajectory_blocker)
+
+	// DemonicLynx for BandaMarines: a loaded underbarrel launcher is the fallback explosive when no hand grenade exists.
+	brain.equipment_map[HUMAN_AI_GRENADES] -= carried_grenade
+	var/obj/item/weapon/gun/rifle/m41aMK1/army/launcher_rifle = allocate(/obj/item/weapon/gun/rifle/m41aMK1/army, ai_human)
+	brain.set_primary_weapon(launcher_rifle)
+	var/obj/item/attachable/attached_gun/grenade/underbarrel_launcher = brain.get_ready_underbarrel_grenade_launcher()
+	TEST_ASSERT_NOTNULL(underbarrel_launcher, "Human AI did not recognize a loaded and ready underbarrel grenade launcher.")
+	TEST_ASSERT_EQUAL(brain.get_underbarrel_grenade_target(underbarrel_launcher, hostile_turf), hostile_turf, "Human AI did not select the safe hostile turf for an underbarrel grenade.")
+	var/datum/ai_action/fire_underbarrel_grenade/underbarrel_action = GLOB.AI_actions[/datum/ai_action/fire_underbarrel_grenade]
+	TEST_ASSERT_EQUAL(underbarrel_action.get_weight(brain), 100, "A successful grenade decision did not prioritize the ready underbarrel launcher.")
+	var/mob/living/carbon/human/launcher_friendly = allocate(/mob/living/carbon/human, get_step(hostile_turf, EAST))
+	launcher_friendly.faction = FACTION_UNSC
+	TEST_ASSERT_NULL(brain.get_underbarrel_grenade_target(underbarrel_launcher, hostile_turf), "Human AI accepted an underbarrel grenade target inside the friendly safety radius.")
+	qdel(launcher_friendly)
+	underbarrel_launcher.in_chamber = null
+	underbarrel_launcher.current_rounds = 0
+	TEST_ASSERT_NULL(brain.get_ready_underbarrel_grenade_launcher(), "Human AI considered an empty underbarrel grenade launcher ready.")
+
 	brain.begin_combat_grenade_decision()
 	brain.combat_grenade_use_chance = 0
 	TEST_ASSERT(!brain.should_attempt_combat_grenade(), "Human AI failed a forced unsuccessful combat-grenade decision.")

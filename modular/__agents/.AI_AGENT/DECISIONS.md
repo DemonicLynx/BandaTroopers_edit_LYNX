@@ -1,13 +1,17 @@
 # DECISIONS
 
-## D-001: Use one normalized workflow instead of additive exceptions
-- Decision: rewrite the affected instruction sections so approved-plan execution has one order and one set of blocking statuses.
-- Why: adding extra warnings without removing old thresholds left escape hatches such as "small hotfix", "tests passed", and "not a large task".
+## D-001: Exact underfloor allowlist
+- Allow `/obj/structure/pipes`, `/obj/structure/cable`, and `/obj/structure/disposalpipe` only when non-dense.
+- Reject a generic FLOOR_PLANE rule because lattices, alien structures, traps, and other gameplay objects also use that plane.
 
-## D-002: Treat task-state edits as the allowed planning mutation
-- Decision: after read-only discovery, updating `PLAN/TODO/DECISIONS/EVIDENCE` is the only mutation allowed before implementation edits.
-- Why: the previous wording required task-state updates before mutating edits while also classifying every file edit as mutating.
+## D-002: Visibility-aware flora traversal
+- Permit only non-dense flora below `MOB_LAYER`, excluding tall grass with above-mob overlays.
+- This preserves low ground-cover traversal without letting NPCs disappear inside bushes, jungle plants, or trees.
 
-## D-003: Verification is separate from plan fidelity
-- Decision: tests and compile checks remain expected evidence, but they cannot close `MUST/KEEP/REJECT` items by themselves.
-- Why: the user's current priority is adherence to approved plans; verification should not become a substitute for requested architecture work.
+## D-003: Persist the order, not the action instance
+- `quick_approach` remains brain state when its action is preempted; arrival or bounded failure clears it explicitly.
+- Fire At Target remains hand-only and therefore runs alongside the movement action.
+
+## D-004: Bounded anti-oscillation
+- Record the previous navigation turf and penalize immediate return steps when another legal step exists.
+- Abort Approach after repeated actual navigation failures, not ordinary movement-delay ticks.
