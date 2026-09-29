@@ -6,6 +6,22 @@
 /datum/unit_test/admin_music/Run()
 	return
 
+// SS220 EDIT - START: DemonicLynx for BandaMarines - signed direct audio bypasses extractors
+/datum/unit_test/admin_music_direct_audio
+	parent_type = /datum/unit_test/admin_music
+
+/datum/unit_test/admin_music_direct_audio/Run()
+	var/signed_url = "https://cdn.discordapp.com/attachments/123/456/1_.m4a?ex=abc&hm=signature&"
+	var/datum/media_response/response = service.resolve_media(null, signed_url, TRUE)
+	TEST_ASSERT_NOTNULL(response, "Direct audio failed without a web extractor.")
+	TEST_ASSERT_EQUAL(response.url, signed_url, "Direct audio lost its signed query parameters.")
+	TEST_ASSERT_EQUAL(response.title, "1_.m4a", "Direct audio title contains signed URL parameters.")
+	for(var/extension in list("mp3", "M4A", "aac", "ogg", "wav"))
+		TEST_ASSERT_NOTNULL(service.resolve_direct_audio("https://example.com/music.[extension]#t=10"), "Supported audio extension was rejected: [extension].")
+	for(var/invalid_url in list("file:///music.m4a", "javascript:music.mp3", "//example.com/music.ogg", "https://example.com/watch?v=music.m4a", "https://example.com/page#music.mp3", "https://example.com/music.mp3.html", "https:///music.m4a", "https://example.com/music.mp3\nextra"))
+		TEST_ASSERT_NULL(service.resolve_direct_audio(invalid_url), "Non-audio or unsafe URL bypassed the extractor: [invalid_url].")
+// SS220 EDIT - END
+
 /datum/unit_test/admin_music/New()
 	. = ..()
 	service = new /datum/admin_music_service

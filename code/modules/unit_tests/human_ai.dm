@@ -561,7 +561,13 @@
 	var/datum/human_ai_brain/second_brain = allocate(/datum/human_ai_brain, second_human)
 	var/datum/human_ai_brain/third_brain = allocate(/datum/human_ai_brain, third_human)
 	TEST_ASSERT(first_brain.is_in_idle_ai_cluster(), "Human AI did not recognize a three-NPC idle cluster.")
-	TEST_ASSERT(first_brain.can_seek_idle_defensive_position(), "Healthy idle Human AI rejected defensive redistribution.")
+	// SS220 EDIT - START: DemonicLynx for BandaMarines - idle relocation is disabled even in a cluster
+	TEST_ASSERT(!first_brain.can_seek_idle_defensive_position(), "Human AI still permits automatic idle defensive relocation.")
+	TEST_ASSERT_EQUAL(GLOB.AI_actions[/datum/ai_action/idle_defensive_position].get_weight(first_brain), 0, "Disabled idle relocation was offered to the scheduler.")
+	TEST_ASSERT_NULL(first_brain.find_idle_defensive_position(), "Disabled idle relocation still searches for a position.")
+	TEST_ASSERT(!first_brain.move_to_idle_defensive_position(get_step(cluster_turf, EAST)), "Disabled idle relocation still attempts movement.")
+	TEST_ASSERT_EQUAL(get_turf(first_human), cluster_turf, "Disabled idle relocation moved the NPC.")
+	// SS220 EDIT - END
 
 	var/turf/reserved_post = get_step(cluster_turf, NORTH)
 	TEST_ASSERT_NOTNULL(reserved_post, "Human AI idle-position test area must contain a reservable turf.")

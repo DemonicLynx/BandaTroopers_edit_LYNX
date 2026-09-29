@@ -39,3 +39,34 @@
 	TEST_ASSERT_EQUAL(calculate_minimap_pan_shift(100, 156, 356, 430), -10, "A small map did not expose its opposite edge margin.")
 	// DemonicLynx for BandaMarines - END
 // DemonicLynx for BandaMarines - END
+
+// SS220 EDIT - START: DemonicLynx for BandaMarines - live refresh preserves visibility and pan
+/datum/unit_test/minimap_live_markers/Run()
+	var/zlevel = run_loc_floor_bottom_left.z
+	var/datum/tacmap_holder/holder = allocate(/datum/tacmap_holder, null, zlevel, MINIMAP_FLAG_USCM)
+	var/datum/hud_displays/display = SSminimaps.minimaps_by_z["[zlevel]"]
+	TEST_ASSERT_NOTNULL(display, "Test z-level has no minimap display.")
+	var/image/friendly = image('icons/ui_icons/map_blips.dmi', pixel_x = 10, pixel_y = 20)
+	var/image/hidden = image('icons/ui_icons/map_blips.dmi', pixel_x = 100, pixel_y = 200)
+	display.images_raw["[MINIMAP_FLAG_USCM]"] += friendly
+	display.images_raw["[MINIMAP_FLAG_XENO]"] += hidden
+	var/original_screen_loc = holder.map.screen_loc
+	holder.refresh_live_markers()
+	var/initial_count = length(holder.map.overlays)
+	friendly.pixel_x = 30
+	holder.refresh_live_markers()
+	var/found_moved = FALSE
+	var/found_hidden = FALSE
+	for(var/image/marker as anything in holder.map.overlays)
+		if(marker.pixel_x == 30 && marker.pixel_y == 20)
+			found_moved = TRUE
+		if(marker.pixel_x == 100 && marker.pixel_y == 200)
+			found_hidden = TRUE
+	// Restore shared data before assertions can abort this test.
+	display.images_raw["[MINIMAP_FLAG_USCM]"] -= friendly
+	display.images_raw["[MINIMAP_FLAG_XENO]"] -= hidden
+	TEST_ASSERT(found_moved, "Live map retained the old marker appearance after movement.")
+	TEST_ASSERT(!found_hidden, "Live refresh leaked an unauthorized faction marker.")
+	TEST_ASSERT_EQUAL(length(holder.map.overlays), initial_count, "Live refresh accumulated stale marker copies.")
+	TEST_ASSERT_EQUAL(holder.map.screen_loc, original_screen_loc, "Marker refresh changed the map pan.")
+// SS220 EDIT - END

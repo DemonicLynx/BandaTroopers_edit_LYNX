@@ -363,6 +363,7 @@ SUBSYSTEM_DEF(minimaps)
 
 	removal_cbs[target] = CALLBACK(src, PROC_REF(removeimage), blip, target)
 	RegisterSignal(target, COMSIG_PARENT_QDELETING, PROC_REF(remove_marker))
+	queue_live_marker_refresh(zlevel) // SS220 EDIT: DemonicLynx for BandaMarines - refresh newly visible live markers
 
 /**
  * removes an image from raw tracked lists, invoked by callback
@@ -392,6 +393,10 @@ SUBSYSTEM_DEF(minimaps)
 
 		minimaps_by_z["[oldz]"].images_assoc["[flag]"] -= source
 		minimaps_by_z["[oldz]"].images_raw["[flag]"] -= ref_old
+	// SS220 EDIT - START: DemonicLynx for BandaMarines - refresh both sides of a level transition
+	queue_live_marker_refresh(oldz)
+	queue_live_marker_refresh(newz)
+	// SS220 EDIT - END
 
 /**
  * Simple proc, updates overlay position on the map when a atom moves
@@ -408,6 +413,7 @@ SUBSYSTEM_DEF(minimaps)
 		return
 	pixel_x = display.world_to_minimap_x(source.x)
 	pixel_y = display.world_to_minimap_y(source.y)
+	SSminimaps.queue_live_marker_refresh(source_z) // SS220 EDIT: DemonicLynx for BandaMarines - publish moved marker appearances
 	// DemonicLynx for BandaMarines - END
 
 /image/proc/minimap_on_pickup(obj/item/source, mob/user)
@@ -444,6 +450,7 @@ SUBSYSTEM_DEF(minimaps)
 	else
 		for(var/flag in GLOB.all_minimap_flags)
 			minimaps_by_z["[z_level]"].images_assoc["[flag]"] -= source
+	queue_live_marker_refresh(z_level) // SS220 EDIT: DemonicLynx for BandaMarines - remove stale live markers
 
 /// Checks if the source has a marker already set
 /datum/controller/subsystem/minimaps/proc/has_marker(atom/source)
@@ -1187,11 +1194,16 @@ SUBSYSTEM_DEF(minimaps)
 
 /datum/tacmap_holder/New(loc, zlevel, flags)
 	map_ref = "tacmap_[REF(src)]_map"
+	// SS220 EDIT - START: DemonicLynx for BandaMarines - retain live marker visibility and level
+	live_marker_z = zlevel
+	live_marker_flags = flags
+	// SS220 EDIT - END
 	// DemonicLynx for BandaMarines - START: use an isolated screen object so panning cannot move cached HUD maps
 	map = new /atom/movable/screen/minimap(null, zlevel, flags)
 	map.assigned_map = map_ref
 	map.appearance_flags = NONE // If you really want TILE_BOUND for the tacmaps, you need to CENTER it but it won't be scaled right
 	update_screen_loc()
+	refresh_live_markers() // SS220 EDIT: DemonicLynx for BandaMarines - initial live marker frame
 	// DemonicLynx for BandaMarines - END
 
 // DemonicLynx for BandaMarines - START: calculate and apply native map pan offsets

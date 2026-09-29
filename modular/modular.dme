@@ -17,6 +17,8 @@
 #include "fullscreen/_fullscreen.dme"
 // DemonicLynx for BandaMarines
 #include "human_ai/_human_ai.dme"
+// DemonicLynx for BandaMarines
+#include "tactical_map/_tactical_map.dme"
 #include "squads/_squads.dme"
 #include "world_edit/_world_edit.dme"
 #include "weapons/_weapons.dme"

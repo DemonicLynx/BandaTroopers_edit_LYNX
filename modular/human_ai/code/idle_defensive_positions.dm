@@ -14,17 +14,8 @@
 
 /// Returns whether routine idle movement is safe without displacing a higher-priority behavior.
 /datum/human_ai_brain/proc/can_seek_idle_defensive_position()
-	if(!has_valid_tied_human() || tied_human.client || tied_human.stat != CONSCIOUS || tied_human.is_mob_incapacitated())
-		return FALSE
-	if(in_combat || current_target || target_turf || current_cover || hold_position || current_order)
-		return FALSE
-	if(tied_human.on_fire || active_grenade_found || quick_approach || sniper_home || machinegunner_home)
-		return FALSE
-	if(healing_someone || found_injured_ally || length(to_pickup))
-		return FALSE
-	if(healing_start_check(tied_human))
-		return FALSE
-	return TRUE
+	// DemonicLynx for BandaMarines: automatic idle defensive relocation is disabled.
+	return FALSE
 
 /// Counts nearby friendly Human AI using actual positions, not reservations.
 /datum/human_ai_brain/proc/is_in_idle_ai_cluster()
@@ -125,6 +116,8 @@
 
 /// Chooses one bounded local defensive post, preferring cover and space over crowding.
 /datum/human_ai_brain/proc/find_idle_defensive_position()
+	if(!can_seek_idle_defensive_position())
+		return null
 	if(!has_valid_tied_human())
 		return
 
@@ -155,6 +148,8 @@
 // DemonicLynx for BandaMarines
 /// Takes one bounded idle-only step without routing through tables, doors, lockers, or machinery.
 /datum/human_ai_brain/proc/move_to_idle_defensive_position(turf/destination)
+	if(!can_seek_idle_defensive_position())
+		return FALSE
 	if(!has_valid_tied_human() || !destination)
 		return FALSE
 	if(idle_defensive_position_is_blocked(destination, TRUE))

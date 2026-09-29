@@ -4,7 +4,7 @@
         {
             "type": "byond",
             "request": "launch",
-            "name": "Launch DreamSeeker",
+             "name": "Launch DreamSeeker",
             "preLaunchTask": "Build All",
             "dmb": "${workspaceFolder}/${command:CurrentDMB}"
         },
