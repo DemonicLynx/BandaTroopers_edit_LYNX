@@ -2,6 +2,8 @@
 /datum/controller/subsystem/minimaps
 	/// One deferred redraw per moving z-level, not one full redraw per moving marker.
 	var/list/pending_live_marker_refresh = list()
+	/// Includes private viewer maps as well as cached shared maps.
+	var/list/live_tacmap_holders = list()
 
 /datum/tacmap_holder
 	var/live_marker_z
@@ -12,8 +14,7 @@
 	if(!zlevel || pending_live_marker_refresh["[zlevel]"])
 		return
 	var/has_live_map = FALSE
-	for(var/key in hashed_tacmaps)
-		var/datum/tacmap_holder/holder = hashed_tacmaps[key]
+	for(var/datum/tacmap_holder/holder as anything in live_tacmap_holders)
 		if(!QDELETED(holder) && holder.live_marker_z == zlevel && !QDELETED(holder.map))
 			has_live_map = TRUE
 			break
@@ -24,8 +25,7 @@
 
 /datum/controller/subsystem/minimaps/proc/refresh_live_markers(zlevel)
 	pending_live_marker_refresh -= "[zlevel]"
-	for(var/key in hashed_tacmaps)
-		var/datum/tacmap_holder/holder = hashed_tacmaps[key]
+	for(var/datum/tacmap_holder/holder as anything in live_tacmap_holders)
 		if(!QDELETED(holder) && holder.live_marker_z == zlevel)
 			holder.refresh_live_markers()
 

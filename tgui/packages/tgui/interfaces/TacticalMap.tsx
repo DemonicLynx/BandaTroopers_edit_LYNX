@@ -173,8 +173,9 @@ export const TacticalMap = (props) => {
 const ViewMapPanel = (props) => {
   const { data, act } = useBackend<TacMapProps>();
   // DemonicLynx for BandaMarines - START: native live-map pan controls
-  const [panX, setPanX] = useState(50);
-  const [panY, setPanY] = useState(50);
+  // DemonicLynx for BandaMarines: restore this viewer's position on tab remount.
+  const [panX, setPanX] = useState(data.mapPanX ?? 50);
+  const [panY, setPanY] = useState(data.mapPanY ?? 50);
   const mapViewportRef = useRef<HTMLDivElement>(null);
 
   const getNativeViewportSize = () => {

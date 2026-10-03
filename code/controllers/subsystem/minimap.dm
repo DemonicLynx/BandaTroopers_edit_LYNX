@@ -867,6 +867,7 @@ SUBSYSTEM_DEF(minimaps)
 	owner = xeno_tacmap
 
 /datum/tacmap/Destroy()
+	release_all_viewer_maps() // SS220 EDIT: DemonicLynx for BandaMarines - release private native views
 	map_holder = null
 	owner = null
 	return ..()
@@ -886,7 +887,7 @@ SUBSYSTEM_DEF(minimaps)
 
 	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		user.client.register_map_obj(map_holder.map)
+		register_viewer_map(user) // SS220 EDIT: DemonicLynx for BandaMarines - private viewer screen
 		ui = new(user, src, "TacticalMap")
 		ui.open()
 		RegisterSignal(user.mind, COMSIG_MIND_TRANSFERRED, PROC_REF(on_mind_transferred))
@@ -932,7 +933,7 @@ SUBSYSTEM_DEF(minimaps)
 		if(use_live_map)
 			tacmap_ready_time = SSminimaps.next_fire + 2 SECONDS
 			addtimer(CALLBACK(src, PROC_REF(on_tacmap_fire), faction), SSminimaps.next_fire - world.time + 1 SECONDS)
-			user.client.register_map_obj(map_holder.map)
+			register_viewer_map(user) // SS220 EDIT: DemonicLynx for BandaMarines - private viewer screen
 			RegisterSignal(user.mind, COMSIG_MIND_TRANSFERRED, PROC_REF(on_mind_transferred))
 
 		ui = new(user, src, "TacticalMap")
@@ -959,6 +960,7 @@ SUBSYSTEM_DEF(minimaps)
 
 	data["lastUpdateTime"] = last_update_time
 	data["tacmapReady"] = world.time > tacmap_ready_time
+	data += viewer_map_data(user) // SS220 EDIT: DemonicLynx for BandaMarines - keep own pan state on tab changes
 
 	return data
 
@@ -975,6 +977,7 @@ SUBSYSTEM_DEF(minimaps)
 	data["canViewTacmap"] = TRUE
 	data["canViewCanvas"] = FALSE
 	data["isxeno"] = FALSE
+	data += viewer_map_data(user) // SS220 EDIT: DemonicLynx for BandaMarines - private map reference and pan
 
 	return data
 
@@ -998,6 +1001,7 @@ SUBSYSTEM_DEF(minimaps)
 	data["isxeno"] = is_xeno
 	data["canViewTacmap"] = is_xeno
 	data["canViewCanvas"] = (faction in FACTION_LIST_HUMANOID) || faction == XENO_HIVE_NORMAL
+	data += viewer_map_data(user) // SS220 EDIT: DemonicLynx for BandaMarines - private map reference and pan
 
 	if(can_draw(faction, user))
 		data["canDraw"] = TRUE
@@ -1047,7 +1051,12 @@ SUBSYSTEM_DEF(minimaps)
 	if(action != "panTacmap" || !map_holder)
 		return FALSE
 
-	map_holder.set_pan(
+	// SS220 EDIT - START: DemonicLynx for BandaMarines - never move another viewer's map
+	var/datum/tacmap_holder/viewer_holder = get_viewer_map(ui.user)
+	if(!viewer_holder)
+		return FALSE
+	// SS220 EDIT - END
+	viewer_holder.set_pan(
 		text2num(params["x"]),
 		text2num(params["y"]),
 		text2num(params["viewportWidth"]),
@@ -1180,7 +1189,7 @@ SUBSYSTEM_DEF(minimaps)
 // This gets removed when the player changes bodies (i.e. xeno evolution), so re-register it when that happens.
 /datum/tacmap/proc/on_mind_transferred(datum/mind/source, mob/previous_body)
 	SIGNAL_HANDLER
-	source.current.client.register_map_obj(map_holder.map)
+	transfer_viewer_map(previous_body, source.current) // SS220 EDIT: DemonicLynx for BandaMarines - preserve private view across body transfer
 
 /datum/tacmap_holder
 	var/map_ref
@@ -1197,6 +1206,7 @@ SUBSYSTEM_DEF(minimaps)
 	// SS220 EDIT - START: DemonicLynx for BandaMarines - retain live marker visibility and level
 	live_marker_z = zlevel
 	live_marker_flags = flags
+	SSminimaps.live_tacmap_holders += src // SS220 EDIT: DemonicLynx for BandaMarines - private views also receive live markers
 	// SS220 EDIT - END
 	// DemonicLynx for BandaMarines - START: use an isolated screen object so panning cannot move cached HUD maps
 	map = new /atom/movable/screen/minimap(null, zlevel, flags)
@@ -1227,6 +1237,7 @@ SUBSYSTEM_DEF(minimaps)
 // DemonicLynx for BandaMarines - END
 
 /datum/tacmap_holder/Destroy()
+	SSminimaps.live_tacmap_holders -= src // SS220 EDIT: DemonicLynx for BandaMarines - remove closed private views
 	// DemonicLynx for BandaMarines - START: release the isolated tactical map updater
 	QDEL_NULL(map)
 	// DemonicLynx for BandaMarines - END

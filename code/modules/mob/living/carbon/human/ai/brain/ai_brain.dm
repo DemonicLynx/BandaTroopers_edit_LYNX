@@ -104,6 +104,9 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 	RegisterSignal(tied_human, COMSIG_HUMAN_GET_AI_BRAIN, PROC_REF(get_ai_brain))
 	RegisterSignal(tied_human, COMSIG_HUMAN_SET_SPECIES, PROC_REF(on_species_change))
 	RegisterSignal(tied_human, COMSIG_LIVING_SET_BODY_POSITION, PROC_REF(on_body_position_change)) // SS220 EDIT: standing back up should wake shared human AI immediately
+	// DemonicLynx for BandaMarines
+	if(hascall(src, "modular_setup_stealth_detection"))
+		call(src, "modular_setup_stealth_detection")() // SS220 EDIT: modular Human AI owns rear vision and aggression-response policy
 	GLOB.human_ai_brains += src
 	setup_detection_radius()
 	// DemonicLynx for BandaMarines

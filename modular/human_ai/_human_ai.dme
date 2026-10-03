@@ -3,3 +3,4 @@
 #include "code/idle_defensive_positions.dm"
 #include "code/navigation_safety.dm"
 #include "code/quick_order_control.dm"
+#include "code/stealth_detection.dm"

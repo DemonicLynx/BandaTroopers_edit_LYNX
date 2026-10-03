@@ -2,6 +2,55 @@
 #define HUMAN_AI_TEST_COVER_SCAN_LIMIT 198
 
 // DemonicLynx for BandaMarines
+// SS220 EDIT - START: rear visual stealth is broken only by explicit hostile actions, never yellow Grab
+/datum/unit_test/human_ai_rear_stealth_detection
+
+/datum/unit_test/human_ai_rear_stealth_detection/Run()
+	var/turf/ai_turf = run_loc_floor_bottom_left
+	var/turf/front_turf = get_step(ai_turf, NORTH)
+	var/turf/rear_turf = get_step(ai_turf, SOUTH)
+	TEST_ASSERT_NOTNULL(front_turf, "Human AI rear-stealth test area must contain a northern turf.")
+	TEST_ASSERT_NOTNULL(rear_turf, "Human AI rear-stealth test area must contain a southern turf.")
+
+	var/mob/living/carbon/human/ai_human = allocate(/mob/living/carbon/human, ai_turf)
+	ai_human.faction = FACTION_UNSC
+	ai_human.setDir(NORTH)
+	var/datum/human_ai_brain/brain = allocate(/datum/human_ai_brain, ai_human)
+	brain.has_nightvision = TRUE
+
+	var/mob/living/carbon/human/front_hostile = allocate(/mob/living/carbon/human, front_turf)
+	front_hostile.faction = FACTION_COVENANT
+	var/mob/living/carbon/human/rear_hostile = allocate(/mob/living/carbon/human, rear_turf)
+	rear_hostile.faction = FACTION_COVENANT
+
+	TEST_ASSERT(brain.human_ai_can_visually_detect_target(front_hostile), "Human AI failed to see a hostile in front.")
+	TEST_ASSERT(!brain.human_ai_can_visually_detect_target(rear_hostile), "Human AI visually detected a hostile in its rear blind spot.")
+	TEST_ASSERT_EQUAL(brain.get_target(), front_hostile, "Human AI selected the rear hostile instead of the visible frontal hostile.")
+
+	qdel(front_hostile)
+	brain.lose_target()
+	rear_hostile.a_intent_change(INTENT_GRAB)
+	SEND_SIGNAL(ai_human, COMSIG_ATOM_BEFORE_HUMAN_ATTACK_HAND, rear_hostile, null)
+	TEST_ASSERT_NULL(brain.current_target, "Yellow Grab intent alerted Human AI during a rear stealth takedown.")
+
+	var/obj/item/test_weapon = allocate(/obj/item, rear_hostile)
+	test_weapon.force = 10
+	rear_hostile.start_pulling(ai_human)
+	SEND_SIGNAL(ai_human, COMSIG_ATOM_MOB_ATTACKBY, test_weapon, rear_hostile)
+	TEST_ASSERT_NULL(brain.current_target, "A held rear throat-slit setup on yellow Grab intent alerted Human AI.")
+	rear_hostile.stop_pulling()
+
+	rear_hostile.a_intent_change(INTENT_HARM)
+	SEND_SIGNAL(ai_human, COMSIG_ATOM_BEFORE_HUMAN_ATTACK_HAND, rear_hostile, null)
+	TEST_ASSERT_EQUAL(brain.current_target, rear_hostile, "A hostile rear harm action did not alert Human AI.")
+	TEST_ASSERT(brain.in_combat, "A hostile rear harm action did not put Human AI into combat.")
+
+	brain.lose_target()
+	SEND_SIGNAL(ai_human, COMSIG_ATOM_MOB_ATTACKBY, test_weapon, rear_hostile)
+	TEST_ASSERT_EQUAL(brain.current_target, rear_hostile, "A hostile rear item attack did not alert Human AI.")
+// SS220 EDIT - END
+
+// DemonicLynx for BandaMarines
 // SS220 EDIT - START: fractional armor slowdown must survive subsystem timing quantization
 /datum/unit_test/human_ai_movement_delay_remainder
 

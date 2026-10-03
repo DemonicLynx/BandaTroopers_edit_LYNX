@@ -91,14 +91,14 @@
 /obj/structure/machinery/prop/almayer/CICmap/Initialize()
 	. = ..()
 
+	// SS220 EDIT - START: DemonicLynx for BandaMarines - resolve the active ship faction before constructing the tactical map
+	// map = new /datum/tacmap/drawing(src, minimap_type)
+	// var/datum/squad/main_squad_path = GLOB.RoleAuthority?.get_active_ship_platoon_type() || MAIN_SHIP_PLATOON || text2path(MAIN_SHIP_DEFAULT_PLATOON)
+	// if(main_squad_path::faction in FACTION_LIST_HALO)
+	// 	faction = FACTION_LIST_UNSC
+	// 	minimap_type = MINIMAP_FLAG_UNSC
+	resolve_active_ship_tacmap_faction()
 	map = new /datum/tacmap/drawing(src, minimap_type)
-
-	// SS220 EDIT - START
-	// Conditional faction/minimap override for HALO modes (PR #163 deviation)
-	var/datum/squad/main_squad_path = GLOB.RoleAuthority?.get_active_ship_platoon_type() || MAIN_SHIP_PLATOON || text2path(MAIN_SHIP_DEFAULT_PLATOON)
-	if(main_squad_path::faction in FACTION_LIST_HALO)
-		faction = FACTION_LIST_UNSC
-		minimap_type = MINIMAP_FLAG_UNSC
 	// SS220 EDIT - END
 
 
