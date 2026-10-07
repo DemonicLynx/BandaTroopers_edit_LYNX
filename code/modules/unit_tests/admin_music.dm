@@ -2,6 +2,25 @@
 	var/datum/admin_music_service/service
 	var/list/temp_paths
 
+/datum/unit_test/admin_music/Run()
+	return
+
+// SS220 EDIT - START: signed direct audio bypasses extractors
+/datum/unit_test/admin_music_direct_audio
+	parent_type = /datum/unit_test/admin_music
+
+/datum/unit_test/admin_music_direct_audio/Run()
+	var/signed_url = "https://cdn.discordapp.com/attachments/123/456/1_.m4a?ex=abc&hm=signature&"
+	var/datum/media_response/response = service.resolve_media(null, signed_url, TRUE)
+	TEST_ASSERT_NOTNULL(response, "Direct audio failed without a web extractor.")
+	TEST_ASSERT_EQUAL(response.url, signed_url, "Direct audio lost its signed query parameters.")
+	TEST_ASSERT_EQUAL(response.title, "1_.m4a", "Direct audio title contains signed URL parameters.")
+	for(var/extension in list("mp3", "M4A", "aac", "ogg", "wav"))
+		TEST_ASSERT_NOTNULL(service.resolve_direct_audio("https://example.com/music.[extension]#t=10"), "Supported audio extension was rejected: [extension].")
+	for(var/invalid_url in list("file:///music.m4a", "javascript:music.mp3", "//example.com/music.ogg", "https://example.com/watch?v=music.m4a", "https://example.com/page#music.mp3", "https://example.com/music.mp3.html", "https:///music.m4a", "https://example.com/music.mp3\nextra"))
+		TEST_ASSERT_NULL(service.resolve_direct_audio(invalid_url), "Non-audio or unsafe URL bypassed the extractor: [invalid_url].")
+// SS220 EDIT - END
+
 /datum/unit_test/admin_music/New()
 	. = ..()
 	service = new /datum/admin_music_service
@@ -87,7 +106,7 @@
 	var/datum/admin_music_preset/parsed = parse_result["preset"]
 	TEST_ASSERT_NOTNULL(parsed, "Preset parsing returned no preset for defaulted show-title state.")
 	TEST_ASSERT(parsed.show_title_to_players, "Omitted show-title flag should preserve the TRUE default.")
-	TEST_ASSERT(parsed.repeat, "Omitted repeat flag should preserve the TRUE default.")
+	TEST_ASSERT(!parsed.repeat, "Omitted repeat flag should preserve the FALSE default.") // SS220 EDIT: new admin-music presets no longer repeat by default
 
 	json_data["version"] = 2
 	parse_result = service.parse_preset_json_text(json_encode(json_data), "bad_version")

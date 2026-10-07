@@ -359,7 +359,31 @@ GLOBAL_DATUM_INIT(admin_music_service, /datum/admin_music_service, new)
 		media_players += new /datum/internet_media/cobalt
 	return media_players
 
+/// signed direct audio links do not need a web extractor.
+/datum/admin_music_service/proc/resolve_direct_audio(source_url)
+	if(!istext(source_url))
+		return null
+	var/audio_url = trim(source_url)
+	var/static/regex/direct_audio_url = regex(@{"^https?://[^/?#\s]+/[^?#\s]*\.(mp3|m4a|aac|ogg|wav)([?#][^\s]*)?$"}, "i")
+	if(!direct_audio_url.Find(audio_url) || findtext(audio_url, "\\"))
+		return null
+
+	// Only strip parameters from the display title, never from the playback URL.
+	var/path_end = length(audio_url) + 1
+	var/query_start = findtext(audio_url, "?")
+	var/fragment_start = findtext(audio_url, "#")
+	if(query_start)
+		path_end = min(path_end, query_start)
+	if(fragment_start)
+		path_end = min(path_end, fragment_start)
+	var/list/path_parts = splittext(copytext(audio_url, 1, path_end), "/")
+	return new /datum/media_response(audio_url, path_parts[length(path_parts)])
+
 /datum/admin_music_service/proc/resolve_media(client/requester, source_url, quiet = FALSE)
+	// resolve files before requiring yt-dlp or Cobalt.
+	var/datum/media_response/direct_response = resolve_direct_audio(source_url)
+	if(direct_response)
+		return direct_response
 	var/list/datum/internet_media/media_players = get_media_players()
 	if(!length(media_players))
 		if(!quiet && requester)
