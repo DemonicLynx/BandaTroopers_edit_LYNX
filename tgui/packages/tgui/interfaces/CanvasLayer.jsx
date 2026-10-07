@@ -33,6 +33,20 @@ export class CanvasLayer extends Component {
     this.complexity = 0;
   }
 
+  // START: preserve 684x684 drawing coordinates at display zoom
+  getCanvasCoordinates = (event) => {
+    const canvas = this.canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = rect.width ? canvas.width / rect.width : 1;
+    const scaleY = rect.height ? canvas.height / rect.height : 1;
+
+    return {
+      x: (event.clientX - rect.left) * scaleX,
+      y: (event.clientY - rect.top) * scaleY,
+    };
+  };
+  // END
+
   componentDidMount() {
     this.ctx = this.canvasRef.current.getContext('2d');
     this.ctx.lineWidth = 4;
@@ -56,9 +70,7 @@ export class CanvasLayer extends Component {
   handleMouseDown = (e) => {
     this.isPainting = true;
 
-    const rect = this.canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const { x, y } = this.getCanvasCoordinates(e);
 
     this.ctx.beginPath();
     this.ctx.moveTo(this.lastX, this.lastY);
@@ -78,9 +90,7 @@ export class CanvasLayer extends Component {
 
     this.ctx.strokeStyle = this.state.selection;
 
-    const rect = this.canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const { x, y } = this.getCanvasCoordinates(e);
 
     if (this.lastX !== null && this.lastY !== null) {
       // this controls how often we make new strokes
@@ -111,9 +121,7 @@ export class CanvasLayer extends Component {
       this.lastX !== null &&
       this.lastY !== null
     ) {
-      const rect = this.canvasRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const { x, y } = this.getCanvasCoordinates(e);
 
       this.ctx.moveTo(this.lastX, this.lastY);
       this.ctx.lineTo(x, y);
@@ -258,8 +266,13 @@ export class CanvasLayer extends Component {
   }
 
   displayCanvas() {
+    const displaySize = this.props.displaySize || 684;
     return (
-      <div>
+      // START: scale display without changing exported coordinates
+      <div
+        className="TacticalCanvasLayer"
+        style={{ height: `${displaySize}px`, width: `${displaySize}px` }}
+      >
         {this.complexity > 500 && (
           <Tooltip
             position="bottom"
@@ -284,11 +297,13 @@ export class CanvasLayer extends Component {
           ref={this.canvasRef}
           width={684}
           height={684}
+          style={{ height: '100%', width: '100%' }}
           onMouseDown={(e) => this.handleMouseDown(e)}
           onMouseUp={(e) => this.handleMouseUp(e)}
           onMouseMove={(e) => this.handleMouseMove(e)}
         />
       </div>
+      // END
     );
   }
 

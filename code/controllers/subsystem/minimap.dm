@@ -1,5 +1,14 @@
 #define CANVAS_COOLDOWN_TIME 10 SECONDS
 #define FLATTEN_MAP_COOLDOWN_TIME 10 SECONDS
+// START: live tactical map viewport controls
+#define TACMAP_LIVE_ZOOM 2
+#define TACMAP_LIVE_VIEWPORT_FALLBACK_WIDTH 430
+#define TACMAP_LIVE_VIEWPORT_FALLBACK_HEIGHT 310
+#define TACMAP_LIVE_VIEWPORT_MAX_SIZE (MINIMAP_PIXEL_SIZE * 2)
+#define TACMAP_PAN_EDGE_MARGIN 64
+#define TACMAP_PAN_VERTICAL_DOWN_MARGIN 128
+#define TACMAP_DEFAULT_PAN 50
+// END
 
 /**
  *  # Minimaps subsystem
@@ -14,6 +23,39 @@
  * and zlevel changes are handled in [/datum/controller/subsystem/minimaps/proc/on_z_change]
  * tracking of the actual atoms you want to be drawn on is done by means of datums holding info pertaining to them with [/datum/hud_displays]
  */
+
+// START: fit large minimaps without cropping or marker desync
+/// Calculates an aspect-preserving layout for the occupied part of a z-level.
+/proc/calculate_minimap_layout(xmin, ymin, xmax, ymax)
+	var/map_width = max(xmax - xmin + 1, 1)
+	var/map_height = max(ymax - ymin + 1, 1)
+	var/map_scale = min(MINIMAP_SCALE, min(MINIMAP_PIXEL_SIZE / map_width, MINIMAP_PIXEL_SIZE / map_height))
+	var/scaled_width = max(1, round(map_width * map_scale))
+	var/scaled_height = max(1, round(map_height * map_scale))
+
+	return list(
+		"scale" = map_scale,
+		"scaled_width" = scaled_width,
+		"scaled_height" = scaled_height,
+		"x_offset" = floor((MINIMAP_PIXEL_SIZE - scaled_width) / 2),
+		"y_offset" = floor((MINIMAP_PIXEL_SIZE - scaled_height) / 2),
+	)
+
+/// Converts a world coordinate into the pixel offset used by minimap marker images.
+/proc/minimap_world_to_pixel(world_coordinate, world_minimum, map_scale, map_offset)
+	return round((world_coordinate - world_minimum) * map_scale) + map_offset - 2
+
+/// Converts a scrollbar percentage into a safe pixel shift for a rendered minimap axis.
+/proc/calculate_minimap_pan_shift(pan_percent, content_min, content_max, viewport_size, start_margin = TACMAP_PAN_EDGE_MARGIN, end_margin = TACMAP_PAN_EDGE_MARGIN)
+	pan_percent = clamp(pan_percent, 0, 100)
+	var/start_shift = content_min - start_margin
+	var/center_shift = (content_min + content_max - viewport_size) / 2
+	var/end_shift = content_max - viewport_size + end_margin
+	if(pan_percent <= 50)
+		return round(start_shift + (center_shift - start_shift) * pan_percent / 50)
+	return round(center_shift + (end_shift - center_shift) * (pan_percent - 50) / 50)
+// END
+
 SUBSYSTEM_DEF(minimaps)
 	name = "Minimaps"
 	init_order = SS_INIT_MINIMAP
@@ -47,11 +89,14 @@ SUBSYSTEM_DEF(minimaps)
 		if(!is_ground_level(level) && !is_mainship_level(level))
 			continue
 
-		var/icon/icon_gen = new('icons/ui_icons/minimap.dmi') //600x600 blank icon template for drawing on the map
+		// START: draw at world size, then fit the occupied bounds into the final canvas
+		var/icon/icon_gen = new('icons/ui_icons/minimap.dmi')
+		icon_gen.Scale(max(world.maxx, 1), max(world.maxy, 1))
 		var/xmin = world.maxx
 		var/ymin = world.maxy
 		var/xmax = 1
 		var/ymax = 1
+		var/has_minimap_content = FALSE
 
 		for(var/xval in 1 to world.maxx)
 			for(var/yval in 1 to world.maxy) //Scan all the turfs and draw as needed
@@ -66,6 +111,7 @@ SUBSYSTEM_DEF(minimaps)
 						xmax = max(xmax, xval)
 						ymax = max(ymax, yval)
 					icon_gen.DrawBox(location.minimap_color, xval, yval)
+					has_minimap_content = TRUE
 					continue
 
 				if(istype(location, /turf/open/space))
@@ -78,6 +124,7 @@ SUBSYSTEM_DEF(minimaps)
 					xmax = max(xmax, xval)
 					ymax = max(ymax, yval)
 					icon_gen.DrawBox(alttarget.minimap_color, xval, yval)
+					has_minimap_content = TRUE
 					continue
 
 				var/area/turfloc = location.loc
@@ -87,6 +134,7 @@ SUBSYSTEM_DEF(minimaps)
 					xmax = max(xmax, xval)
 					ymax = max(ymax, yval)
 					icon_gen.DrawBox(BlendRGB(location.minimap_color, turfloc.minimap_color, 0.5), xval, yval)
+					has_minimap_content = TRUE
 					continue
 
 				xmin = min(xmin, xval)
@@ -94,26 +142,34 @@ SUBSYSTEM_DEF(minimaps)
 				xmax = max(xmax, xval)
 				ymax = max(ymax, yval)
 				icon_gen.DrawBox(location.minimap_color, xval, yval)
+				has_minimap_content = TRUE
 
-		xmin = xmin * MINIMAP_SCALE - 1
-		ymin = ymin * MINIMAP_SCALE - 1
-		xmax = min(xmax * MINIMAP_SCALE, MINIMAP_PIXEL_SIZE)
-		ymax = min(ymax * MINIMAP_SCALE, MINIMAP_PIXEL_SIZE)
+		if(!has_minimap_content || xmin > xmax || ymin > ymax)
+			xmin = 1
+			ymin = 1
+			xmax = 1
+			ymax = 1
 
-		icon_gen.Scale(icon_gen.Width() * MINIMAP_SCALE, icon_gen.Height() * MINIMAP_SCALE) //scale it up x2 to make it easer to see
-		icon_gen.Crop(xmin, ymin, MINIMAP_PIXEL_SIZE + xmin - 1, MINIMAP_PIXEL_SIZE + ymin - 1) //then trim it down also cutting anything unused on the bottom left
+		var/list/layout = calculate_minimap_layout(xmin, ymin, xmax, ymax)
+		var/scaled_width = layout["scaled_width"]
+		var/scaled_height = layout["scaled_height"]
+		icon_gen.Crop(xmin, ymin, xmax, ymax)
+		icon_gen.Scale(scaled_width, scaled_height)
 
-		// Determine and assign the offsets
-		minimaps_by_z["[level]"].x_offset = floor((MINIMAP_PIXEL_SIZE - xmax - 1) / MINIMAP_SCALE) - xmin
-		minimaps_by_z["[level]"].y_offset = floor((MINIMAP_PIXEL_SIZE - ymax - 1) / MINIMAP_SCALE) - ymin
-		minimaps_by_z["[level]"].x_max = xmax
-		minimaps_by_z["[level]"].y_max = ymax
+		var/icon/final_icon = new('icons/ui_icons/minimap.dmi')
+		final_icon.Crop(1, 1, MINIMAP_PIXEL_SIZE, MINIMAP_PIXEL_SIZE)
+		final_icon.Blend(icon_gen, ICON_OVERLAY, layout["x_offset"] + 1, layout["y_offset"] + 1)
 
-		// Center the map icon
-		icon_gen.Shift(EAST, minimaps_by_z["[level]"].x_offset + xmin)
-		icon_gen.Shift(NORTH, minimaps_by_z["[level]"].y_offset + ymin)
-
-		minimaps_by_z["[level]"].hud_image = icon_gen //done making the image!
+		var/datum/hud_displays/display = minimaps_by_z["[level]"]
+		display.map_scale = layout["scale"]
+		display.world_x_min = xmin
+		display.world_y_min = ymin
+		display.x_offset = layout["x_offset"]
+		display.y_offset = layout["y_offset"]
+		display.x_max = layout["x_offset"] + scaled_width
+		display.y_max = layout["y_offset"] + scaled_height
+		display.hud_image = final_icon
+		// END
 
 	RegisterSignal(SSdcs, COMSIG_GLOB_NEW_Z, PROC_REF(handle_new_z))
 
@@ -215,6 +271,14 @@ SUBSYSTEM_DEF(minimaps)
 	var/x_offset = 0
 	///y offset of the actual icons to keep it to screens
 	var/y_offset = 0
+	// START: shared transform for the map image and its markers
+	///Scale applied to world coordinates on this z-level.
+	var/map_scale = MINIMAP_SCALE
+	///Lowest world x coordinate included in the rendered minimap.
+	var/world_x_min = 1
+	///Lowest world y coordinate included in the rendered minimap.
+	var/world_y_min = 1
+	// END
 	///max x for this zlevel
 	var/x_max = 1
 	///max y for this zlevel
@@ -225,6 +289,14 @@ SUBSYSTEM_DEF(minimaps)
 	for(var/flag in GLOB.all_minimap_flags)
 		images_assoc["[flag]"] = list()
 		images_raw["[flag]"] = list()
+
+// START: keep all marker positions aligned with adaptive map scaling
+/datum/hud_displays/proc/world_to_minimap_x(world_x)
+	return minimap_world_to_pixel(world_x, world_x_min, map_scale, x_offset)
+
+/datum/hud_displays/proc/world_to_minimap_y(world_y)
+	return minimap_world_to_pixel(world_y, world_y_min, map_scale, y_offset)
+// END
 
 /**
  * Holder datum to ease updating of atoms to update
@@ -259,13 +331,16 @@ SUBSYSTEM_DEF(minimaps)
 		earlyadds += CALLBACK(src, PROC_REF(add_marker), target, zlevel, hud_flags, iconstate, icon, overlay_iconstates, given_image)
 		return
 
+	// START: use the z-level's adaptive transform for new markers
+	var/datum/hud_displays/display = minimaps_by_z["[zlevel]"]
 	var/image/blip
 	if(!given_image)
-		blip = image(icon, iconstate, pixel_x = MINIMAP_PIXEL_FROM_WORLD(target.x) + minimaps_by_z["[zlevel]"].x_offset, pixel_y = MINIMAP_PIXEL_FROM_WORLD(target.y) + minimaps_by_z["[zlevel]"].y_offset)
+		blip = image(icon, iconstate, pixel_x = display.world_to_minimap_x(target.x), pixel_y = display.world_to_minimap_y(target.y))
 	else
-		given_image.pixel_x = MINIMAP_PIXEL_FROM_WORLD(target.x) + minimaps_by_z["[zlevel]"].x_offset
-		given_image.pixel_y = MINIMAP_PIXEL_FROM_WORLD(target.y) + minimaps_by_z["[zlevel]"].y_offset
+		given_image.pixel_x = display.world_to_minimap_x(target.x)
+		given_image.pixel_y = display.world_to_minimap_y(target.y)
 		blip = given_image
+	// END
 
 	for(var/i in overlay_iconstates)
 		var/image/overlay = image(icon, i)
@@ -288,6 +363,7 @@ SUBSYSTEM_DEF(minimaps)
 
 	removal_cbs[target] = CALLBACK(src, PROC_REF(removeimage), blip, target)
 	RegisterSignal(target, COMSIG_PARENT_QDELETING, PROC_REF(remove_marker))
+	queue_live_marker_refresh(zlevel) // SS220 EDIT: refresh newly visible live markers
 
 /**
  * removes an image from raw tracked lists, invoked by callback
@@ -317,6 +393,10 @@ SUBSYSTEM_DEF(minimaps)
 
 		minimaps_by_z["[oldz]"].images_assoc["[flag]"] -= source
 		minimaps_by_z["[oldz]"].images_raw["[flag]"] -= ref_old
+	// SS220 EDIT - START: refresh both sides of a level transition
+	queue_live_marker_refresh(oldz)
+	queue_live_marker_refresh(newz)
+	// SS220 EDIT - END
 
 /**
  * Simple proc, updates overlay position on the map when a atom moves
@@ -327,8 +407,14 @@ SUBSYSTEM_DEF(minimaps)
 	var/source_z = source.z
 	if(!source_z)
 		return
-	pixel_x = MINIMAP_PIXEL_FROM_WORLD(source.x) + SSminimaps.minimaps_by_z["[source_z]"].x_offset
-	pixel_y = MINIMAP_PIXEL_FROM_WORLD(source.y) + SSminimaps.minimaps_by_z["[source_z]"].y_offset
+	// START: keep moving markers on the adaptive map transform
+	var/datum/hud_displays/display = SSminimaps.minimaps_by_z["[source_z]"]
+	if(!display)
+		return
+	pixel_x = display.world_to_minimap_x(source.x)
+	pixel_y = display.world_to_minimap_y(source.y)
+	SSminimaps.queue_live_marker_refresh(source_z) // SS220 EDIT: publish moved marker appearances
+	// END
 
 /image/proc/minimap_on_pickup(obj/item/source, mob/user)
 	SIGNAL_HANDLER
@@ -364,6 +450,7 @@ SUBSYSTEM_DEF(minimaps)
 	else
 		for(var/flag in GLOB.all_minimap_flags)
 			minimaps_by_z["[z_level]"].images_assoc["[flag]"] -= source
+	queue_live_marker_refresh(z_level) // SS220 EDIT: remove stale live markers
 
 /// Checks if the source has a marker already set
 /datum/controller/subsystem/minimaps/proc/has_marker(atom/source)
@@ -590,6 +677,12 @@ SUBSYSTEM_DEF(minimaps)
 	var/x_max = 1
 	/// The vertical max for this map (set at Initialize)
 	var/y_max = 1
+	// START: rendered content bounds used by tactical map panning
+	/// The horizontal start of visible map content inside the minimap canvas.
+	var/x_min = 0
+	/// The vertical start of visible map content inside the minimap canvas.
+	var/y_min = 0
+	// END
 	/// The current x pixel shift
 	var/cur_x_shift = 0
 	/// The current y pixel shift
@@ -608,6 +701,10 @@ SUBSYSTEM_DEF(minimaps)
 
 	x_max = SSminimaps.minimaps_by_z["[target]"].x_max
 	y_max = SSminimaps.minimaps_by_z["[target]"].y_max
+	// START: retain both ends of the fitted content for pan limits
+	x_min = SSminimaps.minimaps_by_z["[target]"].x_offset
+	y_min = SSminimaps.minimaps_by_z["[target]"].y_offset
+	// END
 
 	if(shifting && (x_max > SCREEN_PIXEL_SIZE || y_max > SCREEN_PIXEL_SIZE))
 		START_PROCESSING(SSobj, src)
@@ -770,6 +867,7 @@ SUBSYSTEM_DEF(minimaps)
 	owner = xeno_tacmap
 
 /datum/tacmap/Destroy()
+	release_all_viewer_maps() // SS220 EDIT: release private native views
 	map_holder = null
 	owner = null
 	return ..()
@@ -789,7 +887,7 @@ SUBSYSTEM_DEF(minimaps)
 
 	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		user.client.register_map_obj(map_holder.map)
+		register_viewer_map(user) // SS220 EDIT: private viewer screen
 		ui = new(user, src, "TacticalMap")
 		ui.open()
 		RegisterSignal(user.mind, COMSIG_MIND_TRANSFERRED, PROC_REF(on_mind_transferred))
@@ -835,7 +933,7 @@ SUBSYSTEM_DEF(minimaps)
 		if(use_live_map)
 			tacmap_ready_time = SSminimaps.next_fire + 2 SECONDS
 			addtimer(CALLBACK(src, PROC_REF(on_tacmap_fire), faction), SSminimaps.next_fire - world.time + 1 SECONDS)
-			user.client.register_map_obj(map_holder.map)
+			register_viewer_map(user) // SS220 EDIT: private viewer screen
 			RegisterSignal(user.mind, COMSIG_MIND_TRANSFERRED, PROC_REF(on_mind_transferred))
 
 		ui = new(user, src, "TacticalMap")
@@ -862,6 +960,7 @@ SUBSYSTEM_DEF(minimaps)
 
 	data["lastUpdateTime"] = last_update_time
 	data["tacmapReady"] = world.time > tacmap_ready_time
+	data += viewer_map_data(user) // SS220 EDIT: keep own pan state on tab changes
 
 	return data
 
@@ -869,10 +968,16 @@ SUBSYSTEM_DEF(minimaps)
 	var/list/data = list()
 
 	data["mapRef"] = map_holder?.map_ref
+	// START: live tactical map zoom and scrollbar state
+	data["mapZoom"] = TACMAP_LIVE_ZOOM
+	data["mapPanX"] = map_holder ? map_holder.pan_x : TACMAP_DEFAULT_PAN
+	data["mapPanY"] = map_holder ? map_holder.pan_y : TACMAP_DEFAULT_PAN
+	// END
 	data["canDraw"] = FALSE
 	data["canViewTacmap"] = TRUE
 	data["canViewCanvas"] = FALSE
 	data["isxeno"] = FALSE
+	data += viewer_map_data(user) // SS220 EDIT: private map reference and pan
 
 	return data
 
@@ -881,6 +986,11 @@ SUBSYSTEM_DEF(minimaps)
 
 	data["canvasCooldownDuration"] = CANVAS_COOLDOWN_TIME
 	data["mapRef"] = map_holder?.map_ref
+	// START: live tactical map zoom and scrollbar state
+	data["mapZoom"] = TACMAP_LIVE_ZOOM
+	data["mapPanX"] = map_holder ? map_holder.pan_x : TACMAP_DEFAULT_PAN
+	data["mapPanY"] = map_holder ? map_holder.pan_y : TACMAP_DEFAULT_PAN
+	// END
 	data["canDraw"] = FALSE
 	data["mapFallback"] = wiki_map_fallback
 
@@ -891,6 +1001,7 @@ SUBSYSTEM_DEF(minimaps)
 	data["isxeno"] = is_xeno
 	data["canViewTacmap"] = is_xeno
 	data["canViewCanvas"] = (faction in FACTION_LIST_HUMANOID) || faction == XENO_HIVE_NORMAL
+	data += viewer_map_data(user) // SS220 EDIT: private map reference and pan
 
 	if(can_draw(faction, user))
 		data["canDraw"] = TRUE
@@ -931,6 +1042,28 @@ SUBSYSTEM_DEF(minimaps)
 	updated_canvas = FALSE
 	toolbar_color_selection = "black"
 	toolbar_updated_selection = "black"
+
+// START: pan the native live map from the two TGUI scrollbars
+/datum/tacmap/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
+	. = ..()
+	if(.)
+		return
+	if(action != "panTacmap" || !map_holder)
+		return FALSE
+
+	// SS220 EDIT - START: never move another viewer's map
+	var/datum/tacmap_holder/viewer_holder = get_viewer_map(ui.user)
+	if(!viewer_holder)
+		return FALSE
+	// SS220 EDIT - END
+	viewer_holder.set_pan(
+		text2num(params["x"]),
+		text2num(params["y"]),
+		text2num(params["viewportWidth"]),
+		text2num(params["viewportHeight"]),
+	)
+	return TRUE
+// END
 
 /datum/tacmap/drawing/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	. = ..()
@@ -1056,21 +1189,58 @@ SUBSYSTEM_DEF(minimaps)
 // This gets removed when the player changes bodies (i.e. xeno evolution), so re-register it when that happens.
 /datum/tacmap/proc/on_mind_transferred(datum/mind/source, mob/previous_body)
 	SIGNAL_HANDLER
-	source.current.client.register_map_obj(map_holder.map)
+	transfer_viewer_map(previous_body, source.current) // SS220 EDIT: preserve private view across body transfer
 
 /datum/tacmap_holder
 	var/map_ref
 	var/atom/movable/screen/minimap/map
+	// START: shared pan state for viewers of this tactical map
+	var/pan_x = TACMAP_DEFAULT_PAN
+	var/pan_y = TACMAP_DEFAULT_PAN
+	var/viewport_width = TACMAP_LIVE_VIEWPORT_FALLBACK_WIDTH
+	var/viewport_height = TACMAP_LIVE_VIEWPORT_FALLBACK_HEIGHT
+	// END
 
 /datum/tacmap_holder/New(loc, zlevel, flags)
 	map_ref = "tacmap_[REF(src)]_map"
-	map = SSminimaps.fetch_minimap_object(zlevel, flags)
-	map.screen_loc = "[map_ref]:1,1"
+	// SS220 EDIT - START: retain live marker visibility and level
+	live_marker_z = zlevel
+	live_marker_flags = flags
+	SSminimaps.live_tacmap_holders += src // SS220 EDIT: private views also receive live markers
+	// SS220 EDIT - END
+	// START: use an isolated screen object so panning cannot move cached HUD maps
+	map = new /atom/movable/screen/minimap(null, zlevel, flags)
 	map.assigned_map = map_ref
 	map.appearance_flags = NONE // If you really want TILE_BOUND for the tacmaps, you need to CENTER it but it won't be scaled right
+	update_screen_loc()
+	refresh_live_markers() // SS220 EDIT: initial live marker frame
+	// END
+
+// START: calculate and apply native map pan offsets
+/datum/tacmap_holder/proc/set_pan(new_pan_x, new_pan_y, new_viewport_width, new_viewport_height)
+	pan_x = clamp(new_pan_x, 0, 100)
+	pan_y = clamp(new_pan_y, 0, 100)
+	if(isnum(new_viewport_width) && new_viewport_width > 0)
+		viewport_width = clamp(round(new_viewport_width), 1, TACMAP_LIVE_VIEWPORT_MAX_SIZE)
+	if(isnum(new_viewport_height) && new_viewport_height > 0)
+		viewport_height = clamp(round(new_viewport_height), 1, TACMAP_LIVE_VIEWPORT_MAX_SIZE)
+	update_screen_loc()
+
+/datum/tacmap_holder/proc/update_screen_loc()
+	if(!map)
+		return
+	var/x_shift = calculate_minimap_pan_shift(pan_x, map.x_min, map.x_max, viewport_width)
+	var/y_shift = calculate_minimap_pan_shift(pan_y, map.y_min, map.y_max, viewport_height, TACMAP_PAN_VERTICAL_DOWN_MARGIN, TACMAP_PAN_EDGE_MARGIN)
+	var/x_pixel_offset = -x_shift
+	var/y_pixel_offset = -y_shift
+	map.screen_loc = "[map_ref]:1:[x_pixel_offset],1:[y_pixel_offset]"
+// END
 
 /datum/tacmap_holder/Destroy()
-	map = null
+	SSminimaps.live_tacmap_holders -= src // SS220 EDIT: remove closed private views
+	// START: release the isolated tactical map updater
+	QDEL_NULL(map)
+	// END
 	return ..()
 
 /datum/flattened_tacmap
@@ -1169,3 +1339,12 @@ SUBSYSTEM_DEF(minimaps)
 
 #undef CANVAS_COOLDOWN_TIME
 #undef FLATTEN_MAP_COOLDOWN_TIME
+// START: live tactical map viewport controls
+#undef TACMAP_LIVE_ZOOM
+#undef TACMAP_LIVE_VIEWPORT_FALLBACK_WIDTH
+#undef TACMAP_LIVE_VIEWPORT_FALLBACK_HEIGHT
+#undef TACMAP_LIVE_VIEWPORT_MAX_SIZE
+#undef TACMAP_PAN_EDGE_MARGIN
+#undef TACMAP_PAN_VERTICAL_DOWN_MARGIN
+#undef TACMAP_DEFAULT_PAN
+// END
