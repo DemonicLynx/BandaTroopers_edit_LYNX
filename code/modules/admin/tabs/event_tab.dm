@@ -862,7 +862,21 @@
 		create_humans_html = replacetext(create_humans_html, "null /* object types */", "\"[equipment_presets]\"")
 		create_humans_html = replacetext(create_humans_html, "/* href token */", RawHrefToken(forceGlobal = TRUE))
 
-	show_browser(user, replacetext(create_humans_html, "/* ref src */", "\ref[src]"), "Create Humans", "create_humans", width = 450, height = 720)
+	// START: expose only runtime squads available to Create Humans
+	var/list/squad_options = list()
+	var/list/runtime_squads = GLOB.RoleAuthority?.squads
+	for(var/datum/squad/available_squad as anything in runtime_squads)
+		if(available_squad.locked || available_squad.name == "Root")
+			continue
+		var/squad_label = "[available_squad.name] ([available_squad.faction])"
+		squad_options += "<option value=\"\ref[available_squad]\">[html_encode(squad_label)]</option>"
+	if(!length(squad_options))
+		squad_options += "<option value=\"\" disabled>No available squads</option>"
+
+	var/rendered_create_humans_html = replacetext(create_humans_html, "/* squad options */", jointext(squad_options, ""))
+	rendered_create_humans_html = replacetext(rendered_create_humans_html, "/* ref src */", "\ref[src]")
+	show_browser(user, rendered_create_humans_html, "Create Humans", "create_humans", width = 450, height = 760)
+	// END
 
 /client/proc/create_humans()
 	set name = "Create Humans"

@@ -200,6 +200,27 @@
 	if(href_list["mob_status"] == "burst")
 		burst_the_humans = TRUE
 
+	// START: validate the optional Create Humans squad selection
+	var/assign_squad = href_list["assign_squad"] == "1"
+	var/datum/squad/selected_squad
+	if(assign_squad)
+		var/selected_squad_ref = href_list["squad_ref"]
+		var/list/runtime_squads = GLOB.RoleAuthority?.squads
+		if(!istext(selected_squad_ref) || !length(selected_squad_ref) || !length(runtime_squads))
+			alert("Select an available squad before spawning humans")
+			return
+
+		var/datum/selected_squad_datum = locate(selected_squad_ref)
+		if(!istype(selected_squad_datum, /datum/squad) || !(selected_squad_datum in runtime_squads))
+			alert("The selected squad is no longer available")
+			return
+
+		selected_squad = selected_squad_datum
+		if(selected_squad.locked || selected_squad.name == "Root")
+			alert("The selected squad is no longer available")
+			return
+	// END
+
 	if(humans_to_spawn)
 		var/list/turfs = list()
 		if(isnull(range_to_spawn_on))
@@ -223,6 +244,26 @@
 			spawn_turf = pick(turfs)
 			spawned_human = new(spawn_turf)
 			arm_equipment(spawned_human, job_name, TRUE, FALSE)
+			// START: override preset auto-assignment only for Create Humans
+			var/obj/item/card/id/spawned_id = spawned_human.get_idcard()
+			if(assign_squad && spawned_human.assigned_squad != selected_squad)
+				if(!transfer_marine_to_squad(spawned_human, selected_squad, spawned_human.assigned_squad, spawned_id))
+					if(spawned_human.assigned_squad)
+						to_chat(usr, SPAN_WARNING("[spawned_human] could not be assigned to [selected_squad.name] and remained in [spawned_human.assigned_squad.name]."))
+					else
+						to_chat(usr, SPAN_WARNING("[spawned_human] could not be assigned to [selected_squad.name] and was spawned without a squad."))
+			else if(!assign_squad && spawned_human.assigned_squad)
+				var/datum/squad/preset_squad = spawned_human.assigned_squad
+				preset_squad.remove_marine_from_squad(spawned_human, spawned_id)
+
+			var/datum/weakref/spawned_human_ref = WEAKREF(spawned_human)
+			for(var/datum/data/record/general_record in GLOB.data_core.general)
+				if(general_record.fields["ref"] != spawned_human_ref)
+					continue
+				general_record.fields["squad"] = spawned_human.assigned_squad?.name
+				break
+			spawned_human.hud_set_squad()
+			// END
 			if(!spawned_human.hud_used)
 				spawned_human.create_hud()
 			if(free_the_humans)
@@ -276,7 +317,9 @@
 
 			em_call.activate(quiet_launch, announce_receipt)
 
-		message_admins("[key_name_admin(usr)] created [humans_to_spawn] humans as [job_name] at [get_area(initial_spot)]")
+		// include the explicit Create Humans squad choice in admin logs
+		var/squad_log_name = assign_squad ? selected_squad.name : "None"
+		message_admins("[key_name_admin(usr)] created [humans_to_spawn] humans as [job_name] with squad [squad_log_name] at [get_area(initial_spot)]")
 
 /datum/admins/proc/create_xenos_list(href_list)
 	if(SSticker?.current_state < GAME_STATE_PLAYING)
