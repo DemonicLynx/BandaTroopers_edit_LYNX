@@ -24,10 +24,8 @@
 
 	/// FOV dirs for if our target is out of base world.view range
 	var/list/dir_cone
-	var/rear_view_penalty = 0
 	if(scope_vision)
 		dir_cone = reverse_nearby_direction(reverse_direction(tied_human.dir))
-		rear_view_penalty = view_distance / 7 - 1
 
 	for(var/atom/movable/potential_target in view(view_distance, tied_human))
 		if(potential_target == tied_human)
@@ -46,6 +44,11 @@
 		if(scope_vision && (distance > 7) && !(get_dir(tied_human, potential_target) in dir_cone))
 			continue
 
+		if(hascall(src, "human_ai_can_visually_detect_target"))
+			var/can_visually_detect = call(src, "human_ai_can_visually_detect_target")(potential_target)
+			if(!can_visually_detect)
+				continue // SS220 EDIT: initial visual acquisition cannot see through the NPC's rear blind spot
+
 		if(is_mob)
 			if(!has_nightvision && (distance > 1))
 				var/seen = FALSE
@@ -55,10 +58,6 @@
 						break
 				if(!seen)
 					continue
-
-			var/rear_view_check = scope_vision && (get_dir(tied_human, potential_target) in reverse_nearby_direction(tied_human.dir))
-			if(rear_view_check && (distance > view_distance - rear_view_penalty))
-				continue
 
 			if(!can_target(potential_target))
 				continue

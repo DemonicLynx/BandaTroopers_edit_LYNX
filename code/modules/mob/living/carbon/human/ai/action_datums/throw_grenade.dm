@@ -21,16 +21,20 @@
 	if(!target_turf)
 		return 0
 
-	if(!length(brain.equipment_map[HUMAN_AI_GRENADES]))
+	var/obj/item/explosive/grenade/grenade = locate() in brain.equipment_map[HUMAN_AI_GRENADES]
+	if(!grenade)
 		return 0
 
-	if(!brain.primary_weapon)
-		return 10
+	if(brain.active_grenade_found)
+		return 0
 
-	if(locate(/turf/closed) in get_line(brain.tied_human, target_turf))
-		return 10
+	if(!brain.should_attempt_combat_grenade()) // SS220 EDIT: roll exactly once per combat encounter, not once per scheduler tick
+		return 0
+	// keep a successful roll pending until a currently safe hostile-side throw is possible.
+	if(!resolve_throw_target(brain.tied_human, grenade, target_turf, brain))
+		return 0
 
-	return 0
+	return 100 // SS220 EDIT: a feasible successful encounter roll must preempt routine firing and spacing actions
 
 /datum/ai_action/throw_grenade/get_conflicts(datum/human_ai_brain/brain)
 	. = ..()
@@ -58,6 +62,26 @@
 	for(var/datum/ai_action/conflicting_action as anything in brain.ongoing_actions)
 		if((conflicting_action != src) && (conflicting_action.type in conflicts))
 			qdel(conflicting_action)
+
+/// Stows the personal weapon before the grenade is removed from storage. Failure never drops the weapon.
+/datum/ai_action/throw_grenade/proc/try_stow_weapon_for_grenade(mob/living/carbon/human/tied_human)
+	if(!brain?.primary_weapon || (tied_human.l_hand != brain.primary_weapon && tied_human.r_hand != brain.primary_weapon))
+		return TRUE
+
+	brain.primary_weapon.unwield(tied_human)
+	brain.ensure_primary_hand(brain.primary_weapon)
+	if(!brain.holster_primary())
+		return FALSE
+	return tied_human.l_hand != brain.primary_weapon && tied_human.r_hand != brain.primary_weapon
+
+/// Returns an inert grenade to available AI storage after a cancelled preparation step.
+/datum/ai_action/throw_grenade/proc/return_unprimed_grenade_to_storage(mob/living/carbon/human/tied_human, obj/item/explosive/grenade/grenade)
+	if(!tied_human || QDELETED(grenade) || grenade.active || grenade.loc != tied_human)
+		return FALSE
+	var/storage_loc = brain.storage_has_room(grenade)
+	if(!storage_loc)
+		return FALSE
+	return brain.store_item(grenade, storage_loc, HUMAN_AI_GRENADES)
 
 /datum/ai_action/throw_grenade/proc/try_hold_grenade(mob/living/carbon/human/tied_human, obj/item/explosive/grenade/grenade)
 	if(!grenade || QDELETED(grenade) || !brain || !brain.has_valid_tied_human())
@@ -124,57 +148,66 @@
 
 	return effective_throw_range
 
-/datum/ai_action/throw_grenade/proc/get_fallback_throw_directions(mob/living/carbon/human/tied_human, turf/original_target)
-	var/list/directions = list()
-	var/original_dir = original_target ? get_dir(tied_human, original_target) : 0
-
-	if(original_dir)
-		for(var/direction in make_dir_cardinal(original_dir))
-			if(!(direction in directions))
-				directions += direction
-
-	if(tied_human?.dir)
-		for(var/direction in make_dir_cardinal(tied_human.dir))
-			if(!(direction in directions))
-				directions += direction
-
-	for(var/direction in GLOB.cardinals)
-		if(!(direction in directions))
-			directions += direction
-
-	return directions
-
-/datum/ai_action/throw_grenade/proc/has_friendly_near_throw_target(turf/target_turf)
-	if(!brain || !target_turf)
+/datum/ai_action/throw_grenade/proc/has_friendly_near_throw_target(turf/target_turf, datum/human_ai_brain/acting_brain)
+	if(!acting_brain)
+		acting_brain = brain
+	if(!acting_brain || !target_turf)
 		return FALSE
 
-	for(var/mob/possible_friendly in range(brain.friendly_throw_check_range, target_turf)) // SS220 EDIT: use configurable range from brain
-		if(!brain.can_target(possible_friendly))
+	for(var/mob/possible_friendly in range(acting_brain.friendly_throw_check_range, target_turf)) // SS220 EDIT: use configurable range from brain
+		if(!acting_brain.can_target(possible_friendly))
 			return TRUE
 
 	return FALSE
 
-/datum/ai_action/throw_grenade/proc/resolve_throw_target(mob/living/carbon/human/tied_human, obj/item/explosive/grenade/grenade, turf/original_target)
-	if(can_throw_to_target(tied_human, grenade, original_target))
-		return original_target
+/// Returns the farthest safe landing turf within range on the line toward the hostile.
+/datum/ai_action/throw_grenade/proc/get_hostile_direction_throw_target(mob/living/carbon/human/tied_human, obj/item/explosive/grenade/grenade, turf/hostile_turf, datum/human_ai_brain/acting_brain)
+	if(!acting_brain)
+		acting_brain = brain
+	if(!tied_human || !hostile_turf)
+		return null
 
 	var/effective_throw_range = get_effective_throw_range(grenade)
 	if(!isnum(effective_throw_range) || (effective_throw_range <= min_safe_throw_distance))
 		return null
 
-	var/list/fallback_directions = get_fallback_throw_directions(tied_human, original_target)
-	for(var/direction in fallback_directions)
-		var/turf/cardinal_target = get_ranged_target_turf(tied_human, direction, effective_throw_range)
-		if(can_throw_to_target(tied_human, grenade, cardinal_target) && !has_friendly_near_throw_target(cardinal_target))
-			return cardinal_target
+	var/turf/best_target
+	for(var/turf/candidate as anything in get_line(tied_human, hostile_turf, include_start_atom = FALSE))
+		var/candidate_distance = get_dist(tied_human, candidate)
+		if(candidate_distance > effective_throw_range)
+			break
+		if(candidate_distance <= min_safe_throw_distance)
+			continue
+		if(can_throw_to_target(tied_human, grenade, candidate) && !has_friendly_near_throw_target(candidate, acting_brain))
+			best_target = candidate
 
-	for(var/direction in fallback_directions)
-		for(var/candidate_range = effective_throw_range; candidate_range > min_safe_throw_distance; candidate_range--)
-			var/turf/cardinal_target = get_ranged_target_turf(tied_human, direction, candidate_range)
-			if(can_throw_to_target(tied_human, grenade, cardinal_target))
-				return cardinal_target
+	return best_target
 
-	return null
+/datum/ai_action/throw_grenade/proc/resolve_throw_target(mob/living/carbon/human/tied_human, obj/item/explosive/grenade/grenade, turf/original_target, datum/human_ai_brain/acting_brain)
+	if(!acting_brain)
+		acting_brain = brain
+	if(can_throw_to_target(tied_human, grenade, original_target) && !has_friendly_near_throw_target(original_target, acting_brain)) // SS220 EDIT: never accept the primary target without the same friendly-area check as fallbacks
+		return original_target
+
+	return get_hostile_direction_throw_target(tied_human, grenade, original_target, acting_brain) // SS220 EDIT: clamp toward the hostile instead of choosing an unrelated cardinal fallback
+
+/// Launches an AI grenade in a high arc so intervening allies do not intercept it.
+/datum/ai_action/throw_grenade/proc/launch_grenade_to_target(mob/living/carbon/human/tied_human, obj/item/explosive/grenade/grenade, turf/target_turf)
+	if(!tied_human || QDELETED(grenade) || !grenade.active || (tied_human.get_active_hand() != grenade) || !target_turf)
+		return FALSE
+	if(!grenade.try_to_throw(tied_human))
+		return FALSE
+
+	var/effective_throw_range = get_effective_throw_range(grenade)
+	if(!isnum(effective_throw_range))
+		return FALSE
+
+	tied_human.visible_message(SPAN_WARNING("[tied_human] has thrown [grenade]."), null, null, 5)
+	if(!tied_human.drop_inv_item_on_ground(grenade, TRUE))
+		return FALSE
+	grenade.throw_atom(target_turf, effective_throw_range, SPEED_SLOW, tied_human, TRUE, HIGH_LAUNCH, PASS_MOB_THRU)
+	brain.consume_combat_grenade_decision() // SS220 EDIT: consume the encounter decision only after an actual launch
+	return TRUE
 
 /datum/ai_action/throw_grenade/proc/finish_async_throw()
 	mid_throw = FALSE
@@ -200,6 +233,7 @@
 
 	if(!try_hold_grenade(tied_human, grenade) || !can_throw_to_target(tied_human, grenade, target_turf))
 		log_game("AI GRENADE: async throw aborted — hold or target check failed, grenade=[grenade], mob=[key_name(tied_human)]")
+		return_unprimed_grenade_to_storage(tied_human, grenade)
 		finish_async_throw()
 		return
 
@@ -207,13 +241,20 @@
 	var/turf/final_target_turf = resolve_throw_target(tied_human, grenade, target_turf)
 	if(!final_target_turf)
 		log_game("AI GRENADE: async throw aborted — no valid throw target, target=[target_turf], mob=[key_name(tied_human)]")
+		return_unprimed_grenade_to_storage(tied_human, grenade)
 		finish_async_throw()
 		return
 
+	// activation is legal only while this exact grenade is selected.
+	if(tied_human.get_active_hand() != grenade)
+		return_unprimed_grenade_to_storage(tied_human, grenade)
+		finish_async_throw()
+		return
 	grenade.attack_self(tied_human)
 	log_game("AI GRENADE: grenade primed — grenade=[grenade], target=[final_target_turf], mob=[key_name(tied_human)]")
 	if(QDELETED(grenade) || !grenade.active)
 		log_game("AI GRENADE: async throw aborted after prime — QDELETED=[QDELETED(grenade)], active=[grenade?.active], mob=[key_name(tied_human)]")
+		return_unprimed_grenade_to_storage(tied_human, grenade)
 		finish_async_throw()
 		return
 
@@ -230,33 +271,20 @@
 		finish_async_throw()
 		return
 
-	// SS220 EDIT START: emergency fallback if target became invalid after prime
+	// SS220 EDIT START: keep the primed grenade moving toward the previously validated hostile-side turf
 	var/turf/emergency_target = resolve_throw_target(tied_human, grenade, target_turf)
 	if(!emergency_target)
-		emergency_target = get_fallback_throw_directions(tied_human, target_turf)
-		if(length(emergency_target))
-			for(var/direction in emergency_target)
-				var/turf/candidate = get_ranged_target_turf(tied_human, direction, get_effective_throw_range(grenade))
-				if(candidate && can_throw_to_target(tied_human, grenade, candidate))
-					emergency_target = candidate
-					break
-			if(!isturf(emergency_target))
-				emergency_target = null
-	if(!emergency_target)
-		log_game("AI GRENADE: EMERGENCY — no valid target, dropping live grenade on floor, grenade=[grenade], mob=[key_name(tied_human)], loc=[AREACOORD(tied_human)]")
-		msg_admin_attack("[key_name(tied_human)] (AI) dropped a live [grenade] on the floor — no valid throw target at [AREACOORD(tied_human)].")
-		tied_human.drop_inv_item_on_ground(grenade)
-		finish_async_throw()
-		return
+		emergency_target = final_target_turf
+		log_game("AI GRENADE: final target changed after priming — using previously validated hostile-side turf, grenade=[grenade], target=[emergency_target], mob=[key_name(tied_human)]")
 	final_target_turf = emergency_target
 	// SS220 EDIT END
 
-	if(!tied_human.throw_mode)
-		tied_human.toggle_throw_mode(THROW_MODE_NORMAL)
-
 	tied_human.face_atom(final_target_turf)
-	tied_human.throw_item(final_target_turf) // SS220 EDIT: still release the primed grenade if the original target turf became invalid during the one-second wind-up
-	log_game("AI GRENADE: throw_item() called — grenade=[grenade], target=[final_target_turf], mob=[key_name(tied_human)]")
+	if(!launch_grenade_to_target(tied_human, grenade, final_target_turf))
+		log_game("AI GRENADE: launch failed — grenade=[grenade], target=[final_target_turf], mob=[key_name(tied_human)]")
+		finish_async_throw()
+		return
+	log_game("AI GRENADE: high-arc launch called — grenade=[grenade], target=[final_target_turf], mob=[key_name(tied_human)]")
 	finish_async_throw()
 
 /datum/ai_action/throw_grenade/trigger_action()
@@ -276,12 +304,11 @@
 		return ONGOING_ACTION_COMPLETED
 
 	var/mob/living/carbon/human/tied_human = brain.tied_human
-	if(brain.primary_weapon)
-		brain.primary_weapon.unwield(tied_human)
-		if(tied_human.get_active_hand() == brain.primary_weapon)
-			tied_human.swap_hand()
-
 	cancel_conflicting_actions() // SS220 EDIT: cancel any already-running move/fire/reload actions before the grenade is primed
+	// weapon storage is a required state transition, not an incidental side effect of clearing a hand.
+	if(!try_stow_weapon_for_grenade(tied_human))
+		log_game("AI GRENADE: throw action aborted — personal weapon could not be stowed, weapon=[brain.primary_weapon], mob=[key_name(tied_human)]")
+		return ONGOING_ACTION_COMPLETED
 	if(!try_hold_grenade(tied_human, throwing))
 		log_game("AI GRENADE: throw action aborted — could not hold grenade, grenade=[throwing], mob=[key_name(tied_human)]")
 		return ONGOING_ACTION_COMPLETED
@@ -289,13 +316,15 @@
 	if(isnum(throwing.throw_range))
 		throw_range_override = throwing.throw_range
 
-	if(!can_throw_to_target(tied_human, throwing, target_turf))
-		log_game("AI GRENADE: throw action aborted — target unreachable, distance=[get_dist(tied_human, target_turf)], throw_range=[throw_range_override], mob=[key_name(tied_human)]")
+	var/turf/planned_throw_target = resolve_throw_target(tied_human, throwing, target_turf)
+	if(!planned_throw_target)
+		log_game("AI GRENADE: throw action aborted — no safe hostile-direction target, distance=[get_dist(tied_human, target_turf)], throw_range=[throw_range_override], mob=[key_name(tied_human)]")
+		return_unprimed_grenade_to_storage(tied_human, throwing)
 		return ONGOING_ACTION_COMPLETED
 
-	log_game("AI GRENADE: throw action proceeding to async prime — grenade=[throwing], target=[target_turf], mob=[key_name(tied_human)]")
+	log_game("AI GRENADE: throw action proceeding to async prime — grenade=[throwing], hostile_target=[target_turf], planned_target=[planned_throw_target], mob=[key_name(tied_human)]")
 	mid_throw = TRUE
-	INVOKE_ASYNC(src, PROC_REF(async_prime_and_throw), tied_human, throwing, target_turf)
+	INVOKE_ASYNC(src, PROC_REF(async_prime_and_throw), tied_human, throwing, planned_throw_target)
 	return ONGOING_ACTION_UNFINISHED_BLOCK
 
 #undef HUMAN_AI_GRENADE_MIN_HOLD_DELAY

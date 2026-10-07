@@ -21,7 +21,8 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 	var/friendly_throw_check_range = 3 // SS220 EDIT: configurable friendly check range for grenade throws
 
 	/// Distance for view checks
-	var/view_distance = 6
+	// var/view_distance = 6
+	var/view_distance = 7 // SS220 EDIT: regular Human AI detects enemies up to seven tiles away
 
 	/// Should we limit our FOV in case view_distance is more than 7
 	var/scope_vision = TRUE
@@ -102,8 +103,11 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 	RegisterSignal(tied_human, COMSIG_HUMAN_GET_AI_BRAIN, PROC_REF(get_ai_brain))
 	RegisterSignal(tied_human, COMSIG_HUMAN_SET_SPECIES, PROC_REF(on_species_change))
 	RegisterSignal(tied_human, COMSIG_LIVING_SET_BODY_POSITION, PROC_REF(on_body_position_change)) // SS220 EDIT: standing back up should wake shared human AI immediately
+	if(hascall(src, "modular_setup_stealth_detection"))
+		call(src, "modular_setup_stealth_detection")() // SS220 EDIT: modular Human AI owns rear vision and aggression-response policy
 	GLOB.human_ai_brains += src
 	setup_detection_radius()
+	recalculate_containers() // SS220 EDIT: pre-equipped AI missed equip signals; initialize storage roots before recursive appraisal
 	appraise_inventory()
 	tied_human.a_intent_change(INTENT_DISARM)
 
@@ -124,6 +128,7 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 	wake_rethink_queued_at = -1 // SS220 EDIT: reset must always cancel deferred wake-up recovery before owner teardown finishes
 
 	in_combat = FALSE
+	quick_approach = null // SS220 EDIT: persistent Approach orders must still be cleared when the brain itself resets
 	active_grenade_found = null // SS220 EDIT: reset stale grenade threat state so AI can leave throw-back mode cleanly
 	last_detected_projectile = null // SS220 EDIT: clear projectile detection debounce when brain is reset
 	last_detected_projectile_time = -1
@@ -202,10 +207,16 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 		set_target(get_target())
 
 	if(current_target)
+		cancel_treatment_for_combat() // SS220 EDIT: a confirmed hostile target immediately outranks medical work
 		enter_combat()
 
 	if(!iszombie(tied_human) && should_run_nearby_item_search())
 		item_search(range(2, tied_human))
+
+	scan_nearby_live_grenade_threat() // SS220 EDIT: active floor grenades require a dedicated four-tile emergency scan
+	preempt_actions_for_live_grenade() // SS220 EDIT: grenade reactions immediately release occupied hand and movement slots
+	preempt_routine_actions_for_ally_treatment() // SS220 EDIT: safe medical emergencies displace stale routine action-slot owners
+	preempt_actions_for_unsafe_turf() // SS220 EDIT: never let an interrupted traversal leave an NPC hidden inside scenery
 
 	// List all allowed action types for AI to consider
 	var/list/allowed_actions = action_whitelist || (GLOB.AI_actions.Copy() - action_blacklist)
@@ -232,6 +243,8 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 	var/list/possible_actions = list()
 	for(var/action_type in shuffle(allowed_actions))
 		var/datum/ai_action/glob_ref = GLOB.AI_actions[action_type]
+		if(quick_order_blocks_action(glob_ref)) // SS220 EDIT: Hold Position centrally rejects every newly scheduled movement action
+			continue
 		// SS220 EDIT: skip hand-using actions while a grenade throw is in async flight
 		if(grenade_throw_in_progress && (glob_ref.action_flags & ACTION_USING_HANDS))
 			continue
@@ -261,6 +274,8 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 #endif
 
 	for(var/datum/ai_action/action as anything in ongoing_actions)
+		if(quick_order_blocks_action(action)) // SS220 EDIT: Hold Position also freezes movement actions that survived a state race
+			continue
 		// SS220 EDIT: suppress hand-using actions while a grenade throw is in async flight
 		if(grenade_throw_in_progress && (action.action_flags & ACTION_USING_HANDS))
 			continue
@@ -445,6 +460,7 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 
 		if(faction_check(bullet.firer))
 			return
+		cancel_treatment_for_combat() // SS220 EDIT: only hostile projectile contact interrupts treatment
 
 		if(get_dist(tied_human, bullet.firer) <= view_distance)
 			set_target(bullet.firer)
@@ -485,6 +501,7 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 		return
 
 	if(!in_combat)
+		begin_combat_grenade_decision() // SS220 EDIT: carried-grenade chance is rolled once for each new combat encounter
 		say_in_combat_line()
 
 	if(isxeno(current_target))
@@ -546,6 +563,7 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 
 	if(faction_check(bullet.firer))
 		return
+	cancel_treatment_for_combat() // SS220 EDIT: confirmed hostile damage interrupts treatment before retaliation
 
 	if(get_dist(tied_human, bullet.firer) <= view_distance)
 		set_target(bullet.firer)

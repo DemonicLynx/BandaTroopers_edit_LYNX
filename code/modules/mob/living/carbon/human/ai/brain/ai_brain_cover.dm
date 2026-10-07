@@ -1,3 +1,6 @@
+#define HUMAN_AI_COVER_SCAN_LIMIT 198
+#define HUMAN_AI_COVER_SEARCH_RANGE 3
+
 /datum/human_ai_brain
 	/// If TRUE, AI is currently in some form of cover
 	var/in_cover = FALSE
@@ -20,6 +23,11 @@
 	// Cover isn't working. Charge!
 	end_cover()
 
+// SS220 EDIT AI - START: cover destinations must remain real floor positions, not scenery or doors
+/datum/human_ai_brain/proc/is_valid_cover_destination(turf/candidate)
+	return quick_order_step_within_boundary(candidate) && human_ai_turf_is_safe(candidate, TRUE, FALSE) // SS220 EDIT: cover must be safe and remain inside a Quick Order boundary
+// SS220 EDIT AI - END
+
 /// Try to get the AI to find a suitable cover tile based on the angle a projectile came from.
 /datum/human_ai_brain/proc/try_cover(angle, atom/source)
 	if(!COOLDOWN_FINISHED(src, cover_search_cooldown))
@@ -35,7 +43,7 @@
 	var/list/turf_dict = list()
 	var/cover_dir = reverse_direction(angle2dir4ai(angle))
 
-	recursive_turf_cover_scan(get_turf(tied_human), turf_dict, cover_dir)
+	scan_turfs_for_cover(get_turf(tied_human), turf_dict, cover_dir)
 
 #ifdef TESTING
 	addtimer(CALLBACK(src, PROC_REF(clear_cover_value_debug), turf_dict.Copy()), 60 SECONDS)
@@ -66,68 +74,76 @@
 
 		brain.cover_processing(turf_dict, TRUE)
 
-/// Recursively searches each tile nearby (up to 198 tiles, nearly BYOND's recursion limit) and determines how suitable it is as cover, giving it a numerical score and adding it to turf_dict
-/datum/human_ai_brain/proc/recursive_turf_cover_scan(turf/scan_turf, list/turf_dict, cover_dir, first_iteration = TRUE)
-	if(length(turf_dict) > 198) // Slightly lower than byond recursion limit (200)
-		return FALSE // abort if the room is too large
+/// Iteratively searches nearby tiles and scores at most HUMAN_AI_COVER_SCAN_LIMIT candidates as cover.
+// SS220 EDIT AI - START: recursive flood-fill exhausted BYOND's call stack and aborted Human AI processing
+/datum/human_ai_brain/proc/scan_turfs_for_cover(turf/start_turf, list/turf_dict, cover_dir)
+	if(!start_turf || !islist(turf_dict))
+		return FALSE
 
-	if(scan_turf in turf_dict)
-		return TRUE // abort if we've already been scanned
+	var/list/turf/scan_queue = list(start_turf)
+	var/list/queued_turfs = list()
+	queued_turfs[start_turf] = TRUE
+	var/queue_index = 1
 
-	turf_dict[scan_turf] = 0
+	while(queue_index <= length(scan_queue) && length(turf_dict) < HUMAN_AI_COVER_SCAN_LIMIT)
+		var/turf/scan_turf = scan_queue[queue_index++]
+		var/first_iteration = (scan_turf == start_turf)
+		var/valid_destination = is_valid_cover_destination(scan_turf)
+		if(valid_destination)
+			turf_dict[scan_turf] = 0
 
-	for(var/atom/movable/thing as anything in scan_turf.contents)
-		if(thing.density && !istype(thing, /obj/structure/barricade))
-			turf_dict[scan_turf] -= 1000
-			if(first_iteration)
-				break // We don't wanna end our cover search on self
-			return TRUE // If it has something dense on it, don't bother
-
-	var/obj/structure/barricade/cade = locate() in scan_turf.contents
-	if(cade?.density && (cade?.dir in get_related_directions(cover_dir)))
-		turf_dict[scan_turf] += cade.projectile_coverage / 2
-
-	var/obj/item/explosive/mine/mine = locate() in scan_turf.contents
-	if(mine)
-		if(!faction_check(mine.iff_signal))
-			turf_dict[scan_turf] -= 50
-		else
-			turf_dict[scan_turf] -= 5 // even if it's our mine, we don't really want to stand on it
-
-	turf_dict[scan_turf] -= get_dist(tied_human, scan_turf)
-	if(current_target) // Might be smarter to hide in a different direction
-		turf_dict[scan_turf] += get_dist(current_target, scan_turf) * 0.5
-
-		if(get_dir(current_target, scan_turf) in get_related_directions(cover_dir))
-			turf_dict[scan_turf] -= 20
-
-	for(var/cardinal in shuffle(GLOB.cardinals))
-		var/turf/nearby_turf = get_step(scan_turf, cardinal)
-		if(!nearby_turf)
+		// Expand from the AI's current turf even if scenery already overlaps it, but never offer that turf to squadmates.
+		if(!valid_destination && !first_iteration)
 			continue
 
-		if(istype(nearby_turf, /turf/closed))
-			turf_dict[scan_turf] += 2 // Near a wall is a bit safer
-			if(cardinal in get_related_directions(cover_dir))
-				turf_dict[scan_turf] += 8
-			continue
+		if(valid_destination)
+			var/obj/structure/barricade/cade = locate() in scan_turf.contents
+			if(cade?.density && (cade?.dir in get_related_directions(cover_dir)))
+				turf_dict[scan_turf] += cade.projectile_coverage / 2
 
-		var/obj/structure/reagent_dispensers/fueltank/tank = locate() in nearby_turf.contents
-		if(tank)
-			turf_dict[scan_turf] -= 10 // ideally not near any highly explosive fuel tanks if we can help it
+			var/obj/item/explosive/mine/mine = locate() in scan_turf.contents
+			if(mine)
+				if(!faction_check(mine.iff_signal))
+					turf_dict[scan_turf] -= 50
+				else
+					turf_dict[scan_turf] -= 5
+
+			turf_dict[scan_turf] -= get_dist(tied_human, scan_turf)
+			if(current_target)
+				turf_dict[scan_turf] += get_dist(current_target, scan_turf) * 0.5
+				if(get_dir(current_target, scan_turf) in get_related_directions(cover_dir))
+					turf_dict[scan_turf] -= 20
+
+		for(var/cardinal in shuffle(GLOB.cardinals))
+			var/turf/nearby_turf = get_step(scan_turf, cardinal)
+			if(!nearby_turf)
+				continue
+			if(get_dist(start_turf, nearby_turf) > HUMAN_AI_COVER_SEARCH_RANGE) // SS220 EDIT: defensive cover searches stay local
+				continue
+
+			if(istype(nearby_turf, /turf/closed))
+				if(valid_destination)
+					turf_dict[scan_turf] += 2
+					if(cardinal in get_related_directions(cover_dir))
+						turf_dict[scan_turf] += 8
+				continue
+
+			var/obj/structure/reagent_dispensers/fueltank/tank = locate() in nearby_turf.contents
+			if(tank && valid_destination)
+				turf_dict[scan_turf] -= 10
+
+			if(length(scan_queue) >= HUMAN_AI_COVER_SCAN_LIMIT || queued_turfs[nearby_turf])
+				continue
+			queued_turfs[nearby_turf] = TRUE
+			scan_queue += nearby_turf
 
 #ifdef TESTING
-		scan_turf.maptext = "<h2>[turf_dict[scan_turf]]</h2>"
-#endif
-
-		if(!recursive_turf_cover_scan(nearby_turf, turf_dict, cover_dir, FALSE))
-			return FALSE
-
-#ifdef TESTING
-	scan_turf.maptext = "<h2>[turf_dict[scan_turf]]</h2>"
+		if(valid_destination)
+			scan_turf.maptext = "<h2>[turf_dict[scan_turf]]</h2>"
 #endif
 
 	return TRUE
+// SS220 EDIT AI - END
 
 /datum/human_ai_brain/proc/clear_cover_value_debug(list/turf_list)
 	for(var/turf/T as anything in turf_list)
@@ -137,6 +153,11 @@
 	var/most_weight = -INFINITY
 	var/turf/best_cover
 	for(var/turf/T as anything in turf_dict)
+		if(get_dist(tied_human, T) > HUMAN_AI_COVER_SEARCH_RANGE) // SS220 EDIT: squad-shared scans cannot move this AI farther than three tiles
+			continue
+		// SS220 EDIT: shared scans can be stale, so validate again for this specific AI.
+		if(!is_valid_cover_destination(T))
+			continue
 		var/weight = turf_dict[T]
 		if(weight > most_weight)
 			most_weight = weight
@@ -149,3 +170,6 @@
 		// SS220 EDIT: forward the resolved cover scan once with the correct turf_dict payload
 		if(!from_squad)
 			squad_cover_processing(turf_dict)
+
+#undef HUMAN_AI_COVER_SCAN_LIMIT
+#undef HUMAN_AI_COVER_SEARCH_RANGE
