@@ -316,58 +316,67 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 /datum/preferences/proc/ShowChoices(mob/user)
 	if(!user || !user.client)
 		return
-	update_preview_icon()
 
-	var/dat = "<style>"
-	dat += "#column1 {width: 30%; float: left;}"
-	dat += "#column2 {width: 30%; float: left;}"
-	dat += "#column3 {width: 40%; float: left;}"
-	dat += ".square {width: 15px; height: 15px; display: inline-block;}"
-	dat += "</style>"
-	dat += "<body onselectstart='return false;'>"
-
+	// SS220 DemonicLynx "Lobby UI" - optional character-shell provider; complete upstream header is the fallback.
+	var/datum/modpack/lobby_ui_provider = SSmodpacks?.lobby_ui_provider
+	var/custom_character_editor = lobby_ui_provider?.lobby_ui_uses_custom_character_editor(src)
+	var/dat = lobby_ui_provider?.lobby_ui_character_header(src, user)
+	if(isnull(dat))
+		update_preview_icon()
+		dat = "<style>"
+		dat += "#column1 {width: 30%; float: left;}"
+		dat += "#column2 {width: 30%; float: left;}"
+		dat += "#column3 {width: 40%; float: left;}"
+		dat += ".square {width: 15px; height: 15px; display: inline-block;}"
+		dat += "</style>"
+		dat += "<body onselectstart='return false;'>"
 	if(!path)
 		dat += "Please create an account to save your preferences."
 		return
-
-	dat += "<center>"
-	dat += "<a href=\"byond://?src=\ref[user];preference=open_load_dialog\"><b>Load Slot</b></a> - "
-	dat += "<a href=\"byond://?src=\ref[user];preference=save\"><b>Save Slot</b></a> - "
-	dat += "<a href=\"byond://?src=\ref[user];preference=reload\"><b>Reload Slot</b></a>"
-	dat += "</center>"
-
-	dat += "<hr>"
-
-	dat += "<center>"
-	dat += "<a[current_menu == MENU_MARINE ? " class='linkOff'" : ""] href=\"byond://?src=\ref[user];preference=change_menu;menu=[MENU_MARINE]\"><b>Human</b></a> - "
-	dat += "<a[current_menu == MENU_PLTCO ? " class='linkOff'" : ""] href=\"byond://?src=\ref[user];preference=change_menu;menu=[MENU_PLTCO]\"><b>Platoon Presets</b></a> - " // SS220 EDIT: renamed menu label to match preset-only behavior
-	dat += "<a[current_menu == MENU_XENOMORPH ? " class='linkOff'" : ""] href=\"byond://?src=\ref[user];preference=change_menu;menu=[MENU_XENOMORPH]\"><b>Xenomorph</b></a> - "
-	if(owner.check_whitelist_status(WHITELIST_COMMANDER))
-		dat += "<a[current_menu == MENU_CO ? " class='linkOff'" : ""] href=\"byond://?src=\ref[user];preference=change_menu;menu=[MENU_CO]\"><b>Commanding Officer</b></a> - "
-	dat += "<a[current_menu == MENU_SYNTHETIC ? " class='linkOff'" : ""] href=\"byond://?src=\ref[user];preference=change_menu;menu=[MENU_SYNTHETIC]\"><b>Synthetic</b></a> - "
-	if(owner.check_whitelist_status(WHITELIST_PREDATOR))
-		dat += "<a[current_menu == MENU_YAUTJA ? " class='linkOff'" : ""] href=\"byond://?src=\ref[user];preference=change_menu;menu=[MENU_YAUTJA]\"><b>Yautja</b></a> - "
-	if(owner.check_whitelist_status(WHITELIST_MENTOR))
-		dat += "<a[current_menu == MENU_MENTOR ? " class='linkOff'" : ""] href=\"byond://?src=\ref[user];preference=change_menu;menu=[MENU_MENTOR]\"><b>Mentor</b></a> - "
-	dat += "<a[current_menu == MENU_SETTINGS ? " class='linkOff'" : ""] href=\"byond://?src=\ref[user];preference=change_menu;menu=[MENU_SETTINGS]\"><b>Settings</b></a> - "
-	dat += "<a[current_menu == MENU_SPECIAL ? " class='linkOff'" : ""] href=\"byond://?src=\ref[user];preference=change_menu;menu=[MENU_SPECIAL]\"><b>Special Roles</b></a>"
-	dat += "</center>"
-
-	dat += "<hr>"
+	if(!custom_character_editor)
+		dat += "<center>"
+		dat += "<a href=\"byond://?src=\ref[user];preference=open_load_dialog\"><b>Load Slot</b></a> - "
+		dat += "<a href=\"byond://?src=\ref[user];preference=save\"><b>Save Slot</b></a> - "
+		dat += "<a href=\"byond://?src=\ref[user];preference=reload\"><b>Reload Slot</b></a>"
+		dat += "</center><hr><center>"
+		dat += "<a[current_menu == MENU_MARINE ? " class='linkOff'" : ""] href=\"byond://?src=\ref[user];preference=change_menu;menu=[MENU_MARINE]\"><b>Human</b></a> - "
+		dat += "<a[current_menu == MENU_PLTCO ? " class='linkOff'" : ""] href=\"byond://?src=\ref[user];preference=change_menu;menu=[MENU_PLTCO]\"><b>Platoon Presets</b></a> - "
+		dat += "<a[current_menu == MENU_XENOMORPH ? " class='linkOff'" : ""] href=\"byond://?src=\ref[user];preference=change_menu;menu=[MENU_XENOMORPH]\"><b>Xenomorph</b></a> - "
+		if(owner.check_whitelist_status(WHITELIST_COMMANDER))
+			dat += "<a[current_menu == MENU_CO ? " class='linkOff'" : ""] href=\"byond://?src=\ref[user];preference=change_menu;menu=[MENU_CO]\"><b>Commanding Officer</b></a> - "
+		dat += "<a[current_menu == MENU_SYNTHETIC ? " class='linkOff'" : ""] href=\"byond://?src=\ref[user];preference=change_menu;menu=[MENU_SYNTHETIC]\"><b>Synthetic</b></a> - "
+		if(owner.check_whitelist_status(WHITELIST_PREDATOR))
+			dat += "<a[current_menu == MENU_YAUTJA ? " class='linkOff'" : ""] href=\"byond://?src=\ref[user];preference=change_menu;menu=[MENU_YAUTJA]\"><b>Yautja</b></a> - "
+		if(owner.check_whitelist_status(WHITELIST_MENTOR))
+			dat += "<a[current_menu == MENU_MENTOR ? " class='linkOff'" : ""] href=\"byond://?src=\ref[user];preference=change_menu;menu=[MENU_MENTOR]\"><b>Mentor</b></a> - "
+		dat += "<a[current_menu == MENU_SETTINGS ? " class='linkOff'" : ""] href=\"byond://?src=\ref[user];preference=change_menu;menu=[MENU_SETTINGS]\"><b>Settings</b></a> - "
+		dat += "<a[current_menu == MENU_SPECIAL ? " class='linkOff'" : ""] href=\"byond://?src=\ref[user];preference=change_menu;menu=[MENU_SPECIAL]\"><b>Special Roles</b></a>"
+		dat += "</center><hr>"
 
 	switch(current_menu)
 		if(MENU_MARINE)
 			dat += "<div id='column1'>"
 			dat += "<h1><u><b>Name:</b></u> "
 			dat += "<a href='byond://?_src_=prefs;preference=name;task=input'><b>[real_name]</b></a>"
-			dat += "<a href='byond://?_src_=prefs;preference=name;task=random'>&reg</A></h1>"
+			// SS220 EDIT - START: compact terminal dossier omits randomization shortcuts
+			if(!custom_character_editor)
+				dat += "<a href='byond://?_src_=prefs;preference=name;task=random'>&reg</A>"
+			dat += "</h1>"
+			// SS220 EDIT - END
 			dat += "<u><b>Slot label:</b></u> "
 			dat += "<a href='byond://?_src_=prefs;preference=slot_label;task=input'><b>[slot_label ? "[slot_label]" : "---"]</b></a><br> "
-			dat += "<b>Always Pick Random Name:</b> <a href='byond://?_src_=prefs;preference=rand_name'><b>[be_random_name ? "Yes" : "No"]</b></a><br>"
-			dat += "<b>Always Pick Random Appearance:</b> <a href='byond://?_src_=prefs;preference=rand_body'><b>[be_random_body ? "Yes" : "No"]</b></a><br><br>"
+			// SS220 EDIT - START: terminal dossier keeps randomization controls out of the compact personnel record
+			if(!custom_character_editor)
+				dat += "<b>Always Pick Random Name:</b> <a href='byond://?_src_=prefs;preference=rand_name'><b>[be_random_name ? "Yes" : "No"]</b></a><br>"
+				dat += "<b>Always Pick Random Appearance:</b> <a href='byond://?_src_=prefs;preference=rand_body'><b>[be_random_body ? "Yes" : "No"]</b></a><br><br>"
+			// SS220 EDIT - END
 
 			dat += "<h2><b><u>Physical Information:</u></b>"
-			dat += "<a href='byond://?_src_=prefs;preference=all;task=random'>&reg;</A></h2>"
+			// SS220 EDIT - START: keep full appearance randomization available in the classic theme
+			if(!custom_character_editor)
+				dat += "<a href='byond://?_src_=prefs;preference=all;task=random'>&reg;</A>"
+			dat += "</h2>"
+			// SS220 EDIT - END
 			dat += "<b>Age:</b> <a href='byond://?_src_=prefs;preference=age;task=input'><b>[age]</b></a><br>"
 			dat += "<b>Gender:</b> <a href='byond://?_src_=prefs;preference=gender'><b>[gender == MALE ? "Male" : "Female"]</b></a><br>"
 			dat += "<b>Skin Color:</b> <a href='byond://?_src_=prefs;preference=skin_color;task=input'><b>[skin_color]</b></a><br>"
@@ -416,42 +425,39 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 			dat += "</a>"
 			dat += "<br><br>"
 
-			dat += "<h2><b><u>Marine Gear:</u></b></h2>"
-			var/list/personal_weapon_profile = GLOB.RoleAuthority?.get_main_ship_personal_weapon_profile() // SS220 EDIT: ship profile owns personal weapon UI text and concrete spawn resolution
-			var/personal_weapon_label = personal_weapon_profile?["label"] || "Personal Weapon" // SS220 EDIT: HALO-specific label stays in modular ship profile metadata
-			dat += "<b>[personal_weapon_label]:</b> <a href ='byond://?_src_=prefs;preference=personalweapon;task=input'><b>[personal_weapon]</b></a><br>"
-			dat += "<b>Underwear:</b> <a href ='byond://?_src_=prefs;preference=underwear;task=input'><b>[underwear]</b></a><br>"
-			dat += "<b>Undershirt:</b> <a href='byond://?_src_=prefs;preference=undershirt;task=input'><b>[undershirt]</b></a><br>"
-
-			dat += "<b>Backpack Type:</b> <a href ='byond://?_src_=prefs;preference=bag;task=input'><b>[GLOB.backbaglist[backbag]]</b></a><br>"
-
-			dat += "<b>Preferred Armor:</b> <a href ='byond://?_src_=prefs;preference=prefarmor;task=input'><b>[preferred_armor]</b></a><br>"
-
-			dat += "<b>Show Job Gear:</b> <a href ='byond://?_src_=prefs;preference=toggle_job_gear'><b>[show_job_gear ? "True" : "False"]</b></a><br>"
-			dat += "<b>Background:</b> <a href ='byond://?_src_=prefs;preference=cycle_bg'><b>Cycle Background</b></a><br>"
-
-			dat += "<b>Custom Loadout:</b> "
-			var/total_cost = 0
-
-			if(!islist(gear))
-				gear = list()
-
-			if(length(gear))
-				dat += "<br>"
-				for(var/i = 1; i <= length(gear); i++)
-					var/datum/gear/G = GLOB.gear_datums_by_name[gear[i]]
-					if(G)
-						total_cost += G.cost
-						dat += "[gear[i]] ([G.cost] points) <a href='byond://?src=\ref[user];preference=loadout;task=remove;gear=[i]'><b>Remove</b></a><br>"
-
-				dat += "<b>Used:</b> [total_cost] points"
+			// SS220 DemonicLynx "Lobby UI" - optional complete equipment renderer; upstream controls are the fallback.
+			var/custom_equipment_controls = lobby_ui_provider?.lobby_ui_character_equipment_controls(src, user)
+			if(isnull(custom_equipment_controls))
+				dat += "<h2><b><u>Marine Gear:</u></b></h2>"
+				var/list/personal_weapon_profile = GLOB.RoleAuthority?.get_main_ship_personal_weapon_profile() // SS220 EDIT: ship profile owns personal weapon UI text and concrete spawn resolution
+				var/personal_weapon_label = personal_weapon_profile?["label"] || "Personal Weapon" // SS220 EDIT: HALO-specific label stays in modular ship profile metadata
+				dat += "<b>[personal_weapon_label]:</b> <a href ='byond://?_src_=prefs;preference=personalweapon;task=input'><b>[personal_weapon]</b></a><br>"
+				dat += "<b>Underwear:</b> <a href ='byond://?_src_=prefs;preference=underwear;task=input'><b>[underwear]</b></a><br>"
+				dat += "<b>Undershirt:</b> <a href='byond://?_src_=prefs;preference=undershirt;task=input'><b>[undershirt]</b></a><br>"
+				dat += "<b>Backpack Type:</b> <a href ='byond://?_src_=prefs;preference=bag;task=input'><b>[GLOB.backbaglist[backbag]]</b></a><br>"
+				dat += "<b>Preferred Armor:</b> <a href ='byond://?_src_=prefs;preference=prefarmor;task=input'><b>[preferred_armor]</b></a><br>"
+				dat += "<b>Show Job Gear:</b> <a href ='byond://?_src_=prefs;preference=toggle_job_gear'><b>[show_job_gear ? "True" : "False"]</b></a><br>"
+				dat += "<b>Background:</b> <a href ='byond://?_src_=prefs;preference=cycle_bg'><b>Cycle Background</b></a><br>"
+				dat += "<b>Custom Loadout:</b> "
+				var/total_cost = 0
+				if(!islist(gear))
+					gear = list()
+				if(length(gear))
+					dat += "<br>"
+					for(var/i = 1; i <= length(gear); i++)
+						var/datum/gear/G = GLOB.gear_datums_by_name[gear[i]]
+						if(G)
+							total_cost += G.cost
+							dat += "[gear[i]] ([G.cost] points) <a href='byond://?src=\ref[user];preference=loadout;task=remove;gear=[i]'><b>Remove</b></a><br>"
+					dat += "<b>Used:</b> [total_cost] points"
+				else
+					dat += "None"
+				if(total_cost < MAX_GEAR_COST)
+					dat += " <a href='byond://?src=\ref[user];preference=loadout;task=input'><b>Add</b></a>"
+					if(LAZYLEN(gear))
+						dat += " <a href='byond://?src=\ref[user];preference=loadout;task=clear'><b>Clear</b></a>"
 			else
-				dat += "None"
-
-			if(total_cost < MAX_GEAR_COST)
-				dat += " <a href='byond://?src=\ref[user];preference=loadout;task=input'><b>Add</b></a>"
-				if(LAZYLEN(gear))
-					dat += " <a href='byond://?src=\ref[user];preference=loadout;task=clear'><b>Clear</b></a>"
+				dat += custom_equipment_controls
 
 			dat += "</div>"
 
@@ -604,6 +610,8 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 				dat += "<b>You do not have the whitelist for this role.</b>"
 		if(MENU_SETTINGS)
 			dat += "<div id='column1'>"
+			// SS220 DemonicLynx "Lobby UI" - optional module settings; classic fallback adds nothing.
+			dat += lobby_ui_provider?.lobby_ui_interface_controls(src) || ""
 			dat += "<h2><b><u>Input Settings:</u></b></h2>"
 			dat += "<b>Mode:</b> <a href='byond://?_src_=prefs;preference=hotkeys'><b>[(hotkeys) ? "Hotkeys Mode" : "Send to Chat"]</b></a><br>"
 			dat += "<b>Keybinds:</b> <a href='byond://?_src_=prefs;preference=viewmacros'><b>View Keybinds</b></a><br>"
@@ -705,11 +713,12 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 			dat += "<b>Spawn as Miscellaneous:</b> <a href='byond://?_src_=prefs;preference=toggles_ert;flag=[PLAY_MISC]'><b>[toggles_ert & PLAY_MISC ? "Yes" : "No"]</b></a><br>"
 			dat += "</div>"
 
-	dat += "</div></body>"
-
-	winshow(user, "preferencewindow", TRUE)
-	show_browser(user, dat, "Preferences", "preferencebrowser", width = 1000, height = 800, existing_container = "preferencewindow")
-	onclose(user, "preferencewindow", src)
+	// SS220 DemonicLynx "Lobby UI" - optional footer/display hooks; upstream browser is the fallback.
+	dat += lobby_ui_provider?.lobby_ui_character_footer(src) || "</div></body>"
+	if(!lobby_ui_provider?.lobby_ui_show_character_editor(src, user, dat))
+		winshow(user, "preferencewindow", TRUE)
+		show_browser(user, dat, "Preferences", "preferencebrowser", width = 1000, height = 800, existing_container = "preferencewindow")
+		onclose(user, "preferencewindow", src)
 
 /**
  * Job Preferences: Preferences for role at round start.
@@ -722,6 +731,9 @@ GLOBAL_LIST_INIT(bgstate_options, list(
  */
 /datum/preferences/proc/SetChoices(mob/user, limit = 21, list/splitJobs = list(JOB_CHIEF_REQUISITION, JOB_WO_CMO), width = 950, height = 750)
 	if(!GLOB.RoleAuthority)
+		return
+	// SS220 DemonicLynx "Lobby UI" - optional complete window renderer; the unchanged classic window below is the fallback.
+	if(SSmodpacks?.lobby_ui_provider?.lobby_ui_show_job_preferences(src, user, limit, splitJobs, width, height))
 		return
 
 	var/host_bypass = FALSE
@@ -849,6 +861,9 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 /datum/preferences/proc/set_job_slots(mob/user, limit = 21, list/splitJobs = list(JOB_CHIEF_REQUISITION, JOB_WO_CMO), width = 950, height = 750)
 	if(!GLOB.RoleAuthority)
 		return
+	// SS220 DemonicLynx "Lobby UI" - optional complete window renderer; the unchanged classic window below is the fallback.
+	if(SSmodpacks?.lobby_ui_provider?.lobby_ui_show_job_slots(src, user, limit, splitJobs, width, height))
+		return
 
 	var/HTML = "<body>"
 	HTML += "<tt><center>"
@@ -921,6 +936,10 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 	return
 
 /datum/preferences/proc/SetRecords(mob/user)
+	// SS220 DemonicLynx "Lobby UI" - optional records renderer; complete upstream records window is the fallback.
+	if(SSmodpacks?.lobby_ui_provider?.lobby_ui_show_records(src, user))
+		return
+
 	var/HTML = "<body onselectstart='return false;'>"
 	HTML += "<tt><center>"
 	HTML += "<b>Set Character Records</b><br>"
@@ -1084,6 +1103,9 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 
 /datum/preferences/proc/process_link(mob/user, list/href_list)
 
+	// SS220 DemonicLynx "Lobby UI" - optional action provider; upstream switch is the complete fallback.
+	if(SSmodpacks?.lobby_ui_provider?.lobby_ui_handle_preferences_topic(src, user, href_list))
+		return TRUE
 
 	switch(href_list["preference"])
 		if("job")
@@ -1317,7 +1339,8 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 					if(human_name_ban)
 						to_chat(user, SPAN_NOTICE("You are banned from custom human names."))
 						return
-					var/raw_name = input(user, "Choose your character's name:", "Character Preference")  as text|null
+					// SS220 DemonicLynx "Lobby UI" - neutral translation gateway; English upstream strings are the fallback.
+					var/raw_name = input(user, SSmodpacks.lobby_ui_translate(src, "Choose your character's name:"), SSmodpacks.lobby_ui_translate(src, "Character Preference")) as text|null
 					if (!isnull(raw_name)) // Check to ensure that the user entered text (rather than cancel.)
 						var/new_name = reject_bad_name(raw_name)
 						if(new_name)
@@ -1326,7 +1349,8 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 							to_chat(user, "<font color='red'>Invalid name. Your name should be at least 2 and at most [MAX_NAME_LEN] characters long. It may only contain the characters A-Z, a-z, -, ' and .</font>")
 
 				if("slot_label")
-					var/raw_name = input(user, "Choose a short label or identifier for this character slot. This is not an in-character nickname:", "Character Preference")  as text|null
+					// SS220 DemonicLynx "Lobby UI" - neutral translation gateway; English upstream strings are the fallback.
+					var/raw_name = input(user, SSmodpacks.lobby_ui_translate(src, "Choose a short label or identifier for this character slot. This is not an in-character nickname:"), SSmodpacks.lobby_ui_translate(src, "Character Preference")) as text|null
 					if (raw_name) // Check to ensure that the user entered text (rather than cancel.)
 						var/new_name = reject_bad_name(raw_name)
 						if(new_name)
@@ -1667,18 +1691,21 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 							to_chat(user, "<font color='red'>Invalid Xeno Postfix. Your Postfix can contain single letter and an optional digit after it.</font>")
 
 				if("age")
-					var/new_age = tgui_input_number(user, "Choose your character's age:\n([AGE_MIN]-[AGE_MAX])", "Character Preference", 19, AGE_MAX, AGE_MIN)
+					// SS220 DemonicLynx "Lobby UI" - neutral translation gateway; English upstream strings are the fallback.
+					var/new_age = tgui_input_number(user, SSmodpacks.lobby_ui_translate(src, "Choose your character's age:\n([AGE_MIN]-[AGE_MAX])"), SSmodpacks.lobby_ui_translate(src, "Character Preference"), 19, AGE_MAX, AGE_MIN)
 					if(new_age)
 						age = max(min( floor(text2num(new_age)), AGE_MAX),AGE_MIN)
 
 				if("metadata")
-					var/new_metadata = input(user, "Enter any information you'd like others to see, such as Roleplay-preferences:", "Game Preference" , metadata)  as message|null
+					// SS220 DemonicLynx "Lobby UI" - neutral translation gateway; English upstream strings are the fallback.
+					var/new_metadata = input(user, SSmodpacks.lobby_ui_translate(src, "Enter any information you'd like others to see, such as Roleplay-preferences:"), SSmodpacks.lobby_ui_translate(src, "Game Preference"), metadata) as message|null
 					if(new_metadata)
 						metadata = strip_html(new_metadata)
 
 				if("hair")
 					if(species == "Human")
-						var/new_hair = input(user, "Choose your character's hair color:", "Character Preference", rgb(r_hair, g_hair, b_hair)) as color|null
+						// SS220 DemonicLynx "Lobby UI" - neutral translation gateway; English upstream strings are the fallback.
+						var/new_hair = input(user, SSmodpacks.lobby_ui_translate(src, "Choose your character's hair color:"), SSmodpacks.lobby_ui_translate(src, "Character Preference"), rgb(r_hair, g_hair, b_hair)) as color|null
 						if(new_hair)
 							r_hair = hex2num(copytext(new_hair, 2, 4))
 							g_hair = hex2num(copytext(new_hair, 4, 6))
@@ -1688,21 +1715,18 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 					var/list/valid_hairstyles = list()
 					for(var/hairstyle in GLOB.hair_styles_list)
 						var/datum/sprite_accessory/sprite_accessory = GLOB.hair_styles_list[hairstyle]
-						if( !(species in sprite_accessory.species_allowed))
+						if(!(species in sprite_accessory.species_allowed) || !sprite_accessory.selectable)
 							continue
-						if(!sprite_accessory.selectable)
-							continue
-
-						valid_hairstyles[hairstyle] = GLOB.hair_styles_list[hairstyle]
+						valid_hairstyles[hairstyle] = sprite_accessory
 					valid_hairstyles = sortList(valid_hairstyles)
-
-					var/new_h_style = input(user, "Choose your character's hair style:", "Character Preference")  as null|anything in valid_hairstyles
+					var/new_h_style = input(user, "Choose your character's hair style:", "Character Preference") as null|anything in valid_hairstyles
 					if(new_h_style)
 						h_style = new_h_style
 
 				if("grad")
 					if(species == "Human")
-						var/new_hair_grad = input(user, "Choose your character's hair gradient color:", "Character Preference", rgb(r_gradient, g_gradient, b_gradient)) as color|null
+						// SS220 DemonicLynx "Lobby UI" - neutral translation gateway; English upstream strings are the fallback.
+						var/new_hair_grad = input(user, SSmodpacks.lobby_ui_translate(src, "Choose your character's hair gradient color:"), SSmodpacks.lobby_ui_translate(src, "Character Preference"), rgb(r_gradient, g_gradient, b_gradient)) as color|null
 						if(new_hair_grad)
 							r_gradient = hex2num(copytext(new_hair_grad, 2, 4))
 							g_gradient = hex2num(copytext(new_hair_grad, 4, 6))
@@ -1716,39 +1740,40 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 							continue
 						if(!sprite_accessory.selectable)
 							continue
-						valid_hair_gradients[hair_gradient] = GLOB.hair_gradient_list[hair_gradient]
+						valid_hair_gradients += hair_gradient // SS220 EDIT: preserve a sortable plain canonical-name list
 					valid_hair_gradients = sortList(valid_hair_gradients)
 
-					var/new_h_gradient_style = input(user, "Choose your character's hair gradient style:", "Character Preference")  as null|anything in valid_hair_gradients
+					var/new_h_gradient_style = SSmodpacks.lobby_ui_choice(src, user, "Choose your character's hair gradient style:", "Character Preference", valid_hair_gradients) // SS220 DemonicLynx "Lobby UI" - neutral localization gateway; upstream input is the fallback.
 					if(new_h_gradient_style)
 						grad_style = new_h_gradient_style
 
 				if ("skin_color")
-					var/new_skin_color = tgui_input_list(user, "Choose your character's skin color:", "Character Preferences", GLOB.skin_color_list)
+					var/new_skin_color = SSmodpacks.lobby_ui_choice(src, user, "Choose your character's skin color:", "Character Preferences", GLOB.skin_color_list) // SS220 DemonicLynx "Lobby UI" - neutral localization gateway; upstream input is the fallback.
 
 					if (new_skin_color)
 						skin_color = new_skin_color
 
 				if ("body_size")
-					var/new_body_size = tgui_input_list(user, "Choose your character's body size:", "Character Preferences", GLOB.body_size_list)
+					var/new_body_size = SSmodpacks.lobby_ui_choice(src, user, "Choose your character's body size:", "Character Preferences", GLOB.body_size_list) // SS220 DemonicLynx "Lobby UI" - neutral localization gateway; upstream input is the fallback.
 
 					if (new_body_size)
 						body_size = new_body_size
 
 				if ("body_type")
-					var/new_body_type = tgui_input_list(user, "Choose your character's body type:", "Character Preferences", GLOB.body_type_list)
+					var/new_body_type = SSmodpacks.lobby_ui_choice(src, user, "Choose your character's body type:", "Character Preferences", GLOB.body_type_list) // SS220 DemonicLynx "Lobby UI" - neutral localization gateway; upstream input is the fallback.
 
 					if (new_body_type)
 						body_type = new_body_type
 
 				if ("body_size")
-					var/new_body_size = tgui_input_list(user, "Choose your character's body size:", "Character Preferences", GLOB.body_size_list)
+					var/new_body_size = SSmodpacks.lobby_ui_choice(src, user, "Choose your character's body size:", "Character Preferences", GLOB.body_size_list) // SS220 DemonicLynx "Lobby UI" - neutral localization gateway; upstream input is the fallback.
 
 					if (new_body_size)
 						body_size = new_body_size
 
 				if("facial")
-					var/new_facial = input(user, "Choose your character's facial-hair color:", "Character Preference", rgb(r_facial, g_facial, b_facial)) as color|null
+					// SS220 DemonicLynx "Lobby UI" - neutral translation gateway; English upstream strings are the fallback.
+					var/new_facial = input(user, SSmodpacks.lobby_ui_translate(src, "Choose your character's facial-hair color:"), SSmodpacks.lobby_ui_translate(src, "Character Preference"), rgb(r_facial, g_facial, b_facial)) as color|null
 					if(new_facial)
 						r_facial = hex2num(copytext(new_facial, 2, 4))
 						g_facial = hex2num(copytext(new_facial, 4, 6))
@@ -1762,15 +1787,11 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 							continue
 						if(gender == FEMALE && sprite_accessory.gender == MALE)
 							continue
-						if( !(species in sprite_accessory.species_allowed))
+						if(!(species in sprite_accessory.species_allowed) || !sprite_accessory.selectable)
 							continue
-						if(!sprite_accessory.selectable)
-							continue
-
-						valid_facialhairstyles[facialhairstyle] = GLOB.facial_hair_styles_list[facialhairstyle]
+						valid_facialhairstyles[facialhairstyle] = sprite_accessory
 					valid_facialhairstyles = sortList(valid_facialhairstyles)
-
-					var/new_f_style = input(user, "Choose your character's facial-hair style:", "Character Preference")  as null|anything in valid_facialhairstyles
+					var/new_f_style = input(user, "Choose your character's facial-hair style:", "Character Preference") as null|anything in valid_facialhairstyles
 					if(new_f_style)
 						f_style = new_f_style
 
@@ -1779,7 +1800,7 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 					var/list/personal_weapon_options = personal_weapon_profile?["options"] || GLOB.personal_weapons_list
 					var/personal_weapon_prompt = personal_weapon_profile?["prompt"] || "Choose your character's personal weapon:"
 					var/personal_weapon_title = personal_weapon_profile?["title"] || "Character Preference (USCM Only)"
-					var/new_weapon = tgui_input_list(user, personal_weapon_prompt, personal_weapon_title, personal_weapon_options + "None")
+					var/new_weapon = SSmodpacks.lobby_ui_choice(src, user, personal_weapon_prompt, personal_weapon_title, personal_weapon_options + "None") // SS220 DemonicLynx "Lobby UI" - neutral localization gateway; upstream input is the fallback.
 					if(new_weapon)
 						personal_weapon = new_weapon
 					ShowChoices(user)
@@ -1787,7 +1808,7 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 				if("underwear")
 					var/list/underwear_options = gender == MALE ? GLOB.underwear_m : GLOB.underwear_f
 					var/old_gender = gender
-					var/new_underwear = tgui_input_list(user, "Choose your character's underwear:", "Character Preference", underwear_options-GLOB.underwear_restricted)
+					var/new_underwear = SSmodpacks.lobby_ui_choice(src, user, "Choose your character's underwear:", "Character Preference", underwear_options-GLOB.underwear_restricted) // SS220 DemonicLynx "Lobby UI" - neutral localization gateway; upstream input is the fallback.
 					if(old_gender != gender)
 						return
 					if(new_underwear)
@@ -1797,7 +1818,7 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 				if("undershirt")
 					var/list/undershirt_options = gender == MALE ? GLOB.undershirt_m : GLOB.undershirt_f
 					var/old_gender = gender
-					var/new_undershirt = tgui_input_list(user, "Choose your character's undershirt:", "Character Preference", undershirt_options-GLOB.undershirt_restricted)
+					var/new_undershirt = SSmodpacks.lobby_ui_choice(src, user, "Choose your character's undershirt:", "Character Preference", undershirt_options-GLOB.undershirt_restricted) // SS220 DemonicLynx "Lobby UI" - neutral localization gateway; upstream input is the fallback.
 					if(old_gender != gender)
 						return
 					if(new_undershirt)
@@ -1805,7 +1826,8 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 					ShowChoices(user)
 
 				if("eyes")
-					var/new_eyes = input(user, "Choose your character's eye color:", "Character Preference", rgb(r_eyes, g_eyes, b_eyes)) as color|null
+					// SS220 DemonicLynx "Lobby UI" - neutral translation gateway; English upstream strings are the fallback.
+					var/new_eyes = input(user, SSmodpacks.lobby_ui_translate(src, "Choose your character's eye color:"), SSmodpacks.lobby_ui_translate(src, "Character Preference"), rgb(r_eyes, g_eyes, b_eyes)) as color|null
 					if(new_eyes)
 						r_eyes = hex2num(copytext(new_eyes, 2, 4))
 						g_eyes = hex2num(copytext(new_eyes, 4, 6))
@@ -1818,29 +1840,29 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 						ooccolor = new_ooccolor
 
 				if("bag")
-					var/new_backbag = input(user, "Choose your character's style of bag:", "Character Preference")  as null|anything in GLOB.backbaglist
+					var/new_backbag = SSmodpacks.lobby_ui_choice(src, user, "Choose your character's style of bag:", "Character Preference", GLOB.backbaglist) // SS220 DemonicLynx "Lobby UI" - neutral localization gateway; upstream input is the fallback.
 					if(new_backbag)
 						backbag = GLOB.backbaglist.Find(new_backbag)
 
 				if("wy_relation")
-					var/new_relation = input(user, "Choose your relation to the Weyland-Yutani company. Note that this represents what others can find out about your character by researching your background, not what your character actually thinks.", "Character Preference")  as null|anything in list("Loyal", "Supportive", "Neutral", "Skeptical", "Opposed")
+					var/new_relation = SSmodpacks.lobby_ui_choice(src, user, "Choose your relation to the Weyland-Yutani company. Note that this represents what others can find out about your character by researching your background, not what your character actually thinks.", "Character Preference", list("Loyal", "Supportive", "Neutral", "Skeptical", "Opposed")) // SS220 DemonicLynx "Lobby UI" - neutral localization gateway; upstream input is the fallback.
 					if(new_relation)
 						weyland_yutani_relation = new_relation
 
 				if("prefsquad")
-					var/new_pref_squad = input(user, "Choose your preferred squad.", "Character Preference")  as null|anything in list("Alpha", "Bravo", "Charlie", "Delta", "None")
+					var/new_pref_squad = SSmodpacks.lobby_ui_choice(src, user, "Choose your preferred squad.", "Character Preference", list("Alpha", "Bravo", "Charlie", "Delta", "None")) // SS220 DemonicLynx "Lobby UI" - neutral localization gateway; upstream input is the fallback.
 					if(new_pref_squad)
 						preferred_squad = new_pref_squad
 
 				if("prefarmor")
-					var/new_pref_armor = tgui_input_list(user, "Choose your character's default style of armor:", "Character Preferences", GLOB.armor_style_list)
+					var/new_pref_armor = SSmodpacks.lobby_ui_choice(src, user, "Choose your character's default style of armor:", "Character Preferences", GLOB.armor_style_list) // SS220 DemonicLynx "Lobby UI" - neutral localization gateway; upstream input is the fallback.
 					if(new_pref_armor)
 						preferred_armor = new_pref_armor
 						// Update the dummy with the new armor style.
 						update_preview_icon()
 
 				if("limbs")
-					var/limb_name = tgui_input_list(user, "Which limb do you want to change?", list("Left Leg","Right Leg","Left Arm","Right Arm","Left Foot","Right Foot","Left Hand","Right Hand"))
+					var/limb_name = SSmodpacks.lobby_ui_choice(src, user, "Which limb do you want to change?", "Limb Selection", list("Left Leg","Right Leg","Left Arm","Right Arm","Left Foot","Right Foot","Left Hand","Right Hand")) // SS220 DemonicLynx "Lobby UI" - neutral localization gateway; upstream input is the fallback.
 					if(!limb_name) return
 
 					var/limb = null
@@ -1872,7 +1894,7 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 							limb = "r_hand"
 							third_limb = "r_arm"
 
-					var/new_state = tgui_input_list(user, "What state do you wish the limb to be in?", list("Normal","Prothesis")) //"Amputated")
+					var/new_state = SSmodpacks.lobby_ui_choice(src, user, "What state do you wish the limb to be in?", "Limb Selection", list("Normal","Prothesis")) // SS220 DemonicLynx "Lobby UI" - neutral localization gateway; upstream input is the fallback.
 					if(!new_state) return
 
 					switch(new_state)
@@ -1887,7 +1909,7 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 							if(third_limb && organ_data[third_limb] == "amputated")
 								organ_data[third_limb] = null
 				if("organs")
-					var/organ_name = tgui_input_list(user, "Which internal function do you want to change?", list("Heart", "Eyes"))
+					var/organ_name = SSmodpacks.lobby_ui_choice(src, user, "Which internal function do you want to change?", "Organ Selection", list("Heart", "Eyes")) // SS220 DemonicLynx "Lobby UI" - neutral localization gateway; upstream input is the fallback.
 					if(!organ_name) return
 
 					var/organ = null
@@ -1897,7 +1919,7 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 						if("Eyes")
 							organ = "eyes"
 
-					var/new_state = tgui_input_list(user, "What state do you wish the organ to be in?", "Organ state", list("Normal","Assisted","Mechanical"))
+					var/new_state = SSmodpacks.lobby_ui_choice(src, user, "What state do you wish the organ to be in?", "Organ state", list("Normal","Assisted","Mechanical")) // SS220 DemonicLynx "Lobby UI" - neutral localization gateway; upstream input is the fallback.
 					if(!new_state) return
 
 					switch(new_state)
@@ -1909,25 +1931,28 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 							organ_data[organ] = "mechanical"
 
 				if("skin_style")
-					var/skin_style_name = tgui_input_list(user, "Select a new skin style", "Skin style", list("default1", "default2", "default3"))
+					var/skin_style_name = SSmodpacks.lobby_ui_choice(src, user, "Select a new skin style", "Skin style", list("default1", "default2", "default3")) // SS220 DemonicLynx "Lobby UI" - neutral localization gateway; upstream input is the fallback.
 					if(!skin_style_name) return
 
 				if("origin")
-					var/choice = tgui_input_list(user, "Please choose your character's origin.", "Origin Selection", GLOB.player_origins)
+					var/choice = SSmodpacks.lobby_ui_choice(src, user, "Please choose your character's origin.", "Origin Selection", GLOB.player_origins) // SS220 DemonicLynx "Lobby UI" - neutral localization gateway; upstream input is the fallback.
 					var/datum/origin/picked_choice = GLOB.origins[choice]
 					if(!picked_choice)
 						return
-					if(tgui_alert(user, "You've selected [picked_choice.name]. [picked_choice.desc]", "Selected Origin", list("Confirm", "Cancel")) == "Cancel")
+					// SS220 DemonicLynx "Lobby UI" - neutral translation gateway; English upstream strings are the fallback.
+					var/cancel_origin = SSmodpacks.lobby_ui_translate(src, "Cancel")
+					if(tgui_alert(user, "[SSmodpacks.lobby_ui_translate(src, "You've selected")] [SSmodpacks.lobby_ui_translate(src, picked_choice.name)]. [SSmodpacks.lobby_ui_translate(src, picked_choice.desc)]", SSmodpacks.lobby_ui_translate(src, "Selected Origin"), list(SSmodpacks.lobby_ui_translate(src, "Confirm"), cancel_origin)) == cancel_origin)
 						return
 					if(choice)
 						origin = choice
 
 				if("religion")
-					var/choice = tgui_input_list(user, "Please choose a religion.", "Religion choice", GLOB.religion_choices + "Other")
+					var/choice = SSmodpacks.lobby_ui_choice(src, user, "Please choose a religion.", "Religion choice", GLOB.religion_choices + "Other") // SS220 DemonicLynx "Lobby UI" - neutral localization gateway; upstream input is the fallback.
 					if(!choice)
 						return
 					if(choice == "Other")
-						var/raw_choice = input(user, "Please enter a religon.")  as text|null
+						// SS220 DemonicLynx "Lobby UI" - neutral translation gateway; English upstream strings are the fallback.
+						var/raw_choice = input(user, SSmodpacks.lobby_ui_translate(src, "Please enter a religon."), SSmodpacks.lobby_ui_translate(src, "Character Preference")) as text|null
 						if(raw_choice)
 							religion = strip_html(raw_choice) // This only updates itself in the UI when another change is made, eg. save slot or changing other char settings.
 						return
@@ -1942,7 +1967,7 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 
 					var/list/filtered_options = job.filter_job_option(user)
 
-					var/new_special_job_variant = tgui_input_list(user, "Choose your preferred job variant:", "Preferred Job Variant", filtered_options)
+					var/new_special_job_variant = SSmodpacks.lobby_ui_choice(src, user, "Choose your preferred job variant:", "Preferred Job Variant", filtered_options) // SS220 DemonicLynx "Lobby UI" - neutral localization gateway; upstream input is the fallback.
 					if(!new_special_job_variant)
 						return
 					pref_special_job_options[job.title] = new_special_job_variant
@@ -2037,10 +2062,12 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 
 				if("lobby_music")
 					toggles_sound ^= SOUND_LOBBY
+					// SS220 EDIT - START: keep the lobby theme toggle on the shared LobbyMusic channel
 					if(toggles_sound & SOUND_LOBBY)
-						user << sound(SSticker.login_music, repeat = 0, wait = 0, volume = 85, channel = 1)
+						user.client?.playtitlemusic()
 					else
-						user << sound(null, repeat = 0, wait = 0, volume = 85, channel = 1)
+						user << sound(null, repeat = 0, wait = 0, volume = 0, channel = SOUND_CHANNEL_LOBBY)
+					// SS220 EDIT - END
 
 				if("sound_vox")
 					hear_vox = !hear_vox

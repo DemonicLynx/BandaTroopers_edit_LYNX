@@ -60,6 +60,8 @@
 @include meta.load-css('./interfaces/DropshipWeapons.scss');
 @include meta.load-css('./interfaces/ElevatorControl.scss');
 @include meta.load-css('./interfaces/ExperimentConfigure.scss');
+// SS220 DemonicLynx "Lobby UI" - generic optional FlavorTextEditor presentation styles.
+@include meta.load-css('./interfaces/FlavorTextEditor.scss');
 @include meta.load-css('./interfaces/MarkMenu.scss');
 @include meta.load-css('./interfaces/MedalsViewer.scss');
 @include meta.load-css('./interfaces/NavigationShuttle.scss');
