@@ -1,7 +1,10 @@
 import { useState } from 'react';
-import { useBackend } from 'tgui/backend';
+// SS220 DemonicLynx "Lobby UI" - reuse the standard close action for terminal Esc.
+import { backendSuspendStart, globalStore, useBackend } from 'tgui/backend';
 import { Button, Section, Stack, Tabs, TextArea } from 'tgui/components';
 import { Window } from 'tgui/layouts';
+
+import { getTerminalInputWindowProps } from './common/TerminalInputPresentation';
 
 type Data = {
   general: string;
@@ -17,12 +20,20 @@ type Data = {
   armor: string;
   categories: Array<string>;
   custom_presentation?: {
+    accent_color?: string;
     theme?: string;
     class_name?: string;
     save_label?: string;
     revert_label?: string;
     editor_title?: string;
     category_labels?: Record<string, string>;
+    effect_intensity?: 'full' | 'reduced' | 'off';
+    glow?: boolean;
+    hue_rotation?: number;
+    text_color?: string;
+    // SS220 EDIT: optional terminal account typography.
+    font_family?: string;
+    font_size?: number;
   };
 };
 
@@ -57,9 +68,26 @@ export const FlavorTextEditor = (props) => {
     : `Edit ${category} flavor text (Shift+Enter for new line)`;
 
   return (
-    <Window width={800} height={500} theme={presentation?.theme || 'crtblue'}>
+    <Window
+      width={800}
+      height={500}
+      theme={presentation?.theme || 'crtblue'}
+      {...getTerminalInputWindowProps(presentation)}
+    >
       <Window.Content
         className={`FlavorTextEditor ${presentation?.class_name || ''}`}
+        // SS220 DemonicLynx "Lobby UI" - classic keyboard behavior is unchanged.
+        onKeyDown={
+          presentation
+            ? (event) => {
+                if (event.key === 'Escape' && !event.defaultPrevented) {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  globalStore.dispatch(backendSuspendStart());
+                }
+              }
+            : undefined
+        }
       >
         <Stack fill vertical>
           <Stack.Item>

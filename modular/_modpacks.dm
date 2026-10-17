@@ -27,6 +27,18 @@ SUBSYSTEM_DEF(modpacks)
 	// SS220 DemonicLynx "Lobby UI" - neutral translation gateway; unchanged text is the fallback.
 	return lobby_ui_provider?.lobby_ui_translate_text(preferences, text) || text
 
+/datum/controller/subsystem/modpacks/proc/lobby_ui_text(datum/preferences/preferences, mob/user, prompt, title, default_value, max_length = MAX_MESSAGE_LEN, multiline = FALSE)
+	// SS220 DemonicLynx "Lobby UI" - neutral themed text-input gateway; standard TGUI is the fallback.
+	if(lobby_ui_provider)
+		return lobby_ui_provider.lobby_ui_text_input(preferences, user, prompt, title, default_value, max_length, multiline)
+	return tgui_input_text(user, prompt, title, default_value, max_length, multiline, encode = FALSE)
+
+/datum/controller/subsystem/modpacks/proc/lobby_ui_number(datum/preferences/preferences, mob/user, prompt, title, default_value, max_value, min_value)
+	// SS220 DemonicLynx "Lobby UI" - neutral themed number-input gateway; standard TGUI is the fallback.
+	if(lobby_ui_provider)
+		return lobby_ui_provider.lobby_ui_number_input(preferences, user, prompt, title, default_value, max_value, min_value)
+	return tgui_input_number(user, prompt, title, default_value, max_value, min_value)
+
 /datum/controller/subsystem/modpacks/Initialize()
 	var/list/all_modpacks = list()
 	for(var/modpack in subtypesof(/datum/modpack/))

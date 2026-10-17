@@ -39,14 +39,18 @@
 | `code/modules/client/preferences.dm` | `SetChoices()` | Полная отрисовка терминального окна приоритетов должностей | Полное стандартное Job Preferences |
 | `code/modules/client/preferences.dm` | `set_job_slots()` | Полная отрисовка терминального окна назначения слотов | Полное стандартное Job Assignment |
 | `code/modules/client/preferences.dm` | `SetRecords()` | Оформление записей | Стандартное Set Records |
+| `code/modules/client/preferences.dm` | `open_load_dialog()` | Терминальный каталог слотов | Исходный список `Load Character` |
 | `code/modules/client/preferences.dm` | `process_link()` | Модульные действия ссылок | Стандартный switch обработчика |
 | `code/modules/client/preferences.dm` | `SSmodpacks.lobby_ui_choice()` | Перевод английских prompt/title и отображаемых вариантов с сохранением канонических значений | Обычный английский `tgui_input_list()` |
 | `code/modules/client/preferences.dm` | `SSmodpacks.lobby_ui_translate()` | Перевод отдельных английских prompt/title/labels | Исходный английский текст |
+| `code/modules/client/preferences.dm` | `SSmodpacks.lobby_ui_text()` / `lobby_ui_number()` | Локализованные CRT-поля имени, метки слота, возраста, metadata и религии | Обычные `tgui_input_text()` / `tgui_input_number()` |
+| `code/modules/tgui_input/text.dm`, `code/modules/tgui/tgui_number_input.dm`, `code/modules/tgui/tgui_input_list.dm` | необязательные `theme` и `presentation` | Передача нейтральных цветов/эффектов окну | `null`, стандартная тема TGUI |
+| `tgui/packages/tgui/interfaces/*Input*`, `layouts/Window.tsx`, `styles/interfaces/TerminalInputPresentation.scss` | необязательное поле `presentation` | Применение точных accent/text цветов, glow и intensity без общего hue-фильтра | Стандартное оформление TGUI |
 | `code/modules/client/flavor_text_editor.dm` | TGUI presentation/title | Тема и русские подписи редактора описания | Стандартная тема и заголовок |
 | `code/modules/admin/tabs/event_tab.dm` | обновление Setup Event Info | Мгновенное обновление текста миссии | Никакого push-обновления классического меню |
 | `tgui/packages/tgui/interfaces/FlavorTextEditor.tsx` | `custom_presentation` | Применение необязательного описания внешнего вида | Встроенные классические значения |
 | `tgui/packages/tgui/styles/interfaces/FlavorTextEditor.scss` | класс `--custom` | Нейтральный контейнер для необязательной темы | Стандартные стили TGUI |
-| `interface/skin.dmf` | `lobbybrowser`, `preferencebrowser`, `preferencewindow` | Нейтральные browser-host поверхности | Они скрыты и не меняют классический интерфейс |
+| `interface/skin.dmf` | `lobbybrowser`, `preferencebrowser`, `preferencewindow`, `mainwindow.split.saved-params` | Нейтральные browser-host поверхности и штатное сохранение ручной ширины | Они скрыты и не меняют классический интерфейс |
 
 ## Повторное внесение после upstream
 
@@ -78,11 +82,11 @@ DreamMaker напрямую для этой проверки не использ
 
 ## Готовые фрагменты для повторного внесения
 
-Номера строк ниже соответствуют рабочему дереву на **10 октября 2026 года**. После синхронизации с upstream они могут сместиться. Главный ориентир — путь, имя процедуры/элемента и соседний стандартный код. Вставки не должны удалять стандартное тело: оно остаётся fallback при отключённом модуле.
+Номера строк ниже соответствуют рабочему дереву `C:\BandaTroopers_LYNX` на **14 октября 2026 года**. После синхронизации с upstream они могут сместиться. Главный ориентир — путь, имя процедуры/элемента и соседний стандартный код. Вставки не должны удалять стандартное тело: оно остаётся fallback при отключённом модуле.
 
 ### 1. Подключение и нейтральный контракт
 
-`modular/modular.dme:19`, рядом с include остальных модулей:
+`modular/modular.dme:17`, рядом с include остальных модулей:
 
 ```dm
 #include "lobby_ui/_lobby_ui.dme"
@@ -90,7 +94,7 @@ DreamMaker напрямую для этой проверки не использ
 
 Это единственная строка, включающая реализацию. Нейтральные точки ниже обязаны компилироваться без неё.
 
-`modular/_modpack.dm:19–87`, после стандартных lifecycle-процедур `/datum/modpack`:
+`modular/_modpack.dm:19–98`, после стандартных lifecycle-процедур `/datum/modpack`:
 
 ```dm
 // SS220 DemonicLynx "Lobby UI" - neutral optional provider contract; null/no-op behavior keeps the upstream classic interface.
@@ -143,7 +147,7 @@ DreamMaker напрямую для этой проверки не использ
 	return null
 
 /datum/modpack/proc/lobby_ui_interface_controls(datum/preferences/preferences)
-	return ""
+	return null
 
 /datum/modpack/proc/lobby_ui_show_job_preferences(datum/preferences/preferences, mob/user, limit, list/split_jobs, width, height)
 	return FALSE
@@ -154,6 +158,9 @@ DreamMaker напрямую для этой проверки не использ
 /datum/modpack/proc/lobby_ui_show_records(datum/preferences/preferences, mob/user)
 	return FALSE
 
+/datum/modpack/proc/lobby_ui_show_load_dialog(datum/preferences/preferences, mob/user)
+	return FALSE
+
 /datum/modpack/proc/lobby_ui_handle_preferences_topic(datum/preferences/preferences, mob/user, list/href_list)
 	return FALSE
 
@@ -162,9 +169,15 @@ DreamMaker напрямую для этой проверки не использ
 
 /datum/modpack/proc/lobby_ui_translate_text(datum/preferences/preferences, text)
 	return text
+
+/datum/modpack/proc/lobby_ui_text_input(datum/preferences/preferences, mob/user, prompt, title, default_value, max_length = MAX_MESSAGE_LEN, multiline = FALSE)
+	return tgui_input_text(user, prompt, title, default_value, max_length, multiline)
+
+/datum/modpack/proc/lobby_ui_number_input(datum/preferences/preferences, mob/user, prompt, title, default_value, max_value, min_value)
+	return tgui_input_number(user, prompt, title, default_value, max_value, min_value)
 ```
 
-`modular/_modpacks.dm:8–28`, поле добавить внутри `SUBSYSTEM_DEF(modpacks)` после `loaded_modpacks`, процедуры — перед `Initialize()`:
+`modular/_modpacks.dm:8–40`, поле добавить внутри `SUBSYSTEM_DEF(modpacks)` после `loaded_modpacks`, процедуры — перед `Initialize()`:
 
 ```dm
 	// SS220 DemonicLynx "Lobby UI" - neutral optional provider registration; null preserves all standard fallbacks.
@@ -211,7 +224,7 @@ DreamMaker напрямую для этой проверки не использ
 		return
 ```
 
-`new_player.dm:70–72`, якорь `/mob/new_player/Topic`, после проверки `client`, до стандартного `switch`:
+`new_player.dm:78–86`, якорь `/mob/new_player/Topic`, после проверки `client`, до стандартного `switch`:
 
 ```dm
 	// SS220 DemonicLynx "Lobby UI" - optional click-feedback hook; classic fallback is silence.
@@ -219,7 +232,7 @@ DreamMaker напрямую для этой проверки не использ
 		SSmodpacks?.lobby_ui_provider?.lobby_ui_play_click(src)
 ```
 
-`new_player.dm:398–409`, якорь `/mob/new_player/proc/ViewManifest()`. Сначала получить стандартный HTML один раз, затем перед исходной разметкой окна добавить provider-вызов:
+`new_player.dm:407–418`, якорь `/mob/new_player/proc/ViewManifest()`. Сначала получить стандартный HTML один раз, затем перед исходной разметкой окна добавить provider-вызов:
 
 ```dm
 /mob/new_player/proc/ViewManifest()
@@ -237,7 +250,7 @@ DreamMaker напрямую для этой проверки не использ
 
 Модуль получает уже сформированный `manifest_html`; `code/datums/datacore.dm` менять не нужно. Это сохраняет единый источник данных и не затрагивает манифесты в других интерфейсах.
 
-`new_player.dm:443–448`, якорь `/mob/proc/close_spawn_windows`, между закрытием стандартных окон и сбросом звука:
+`new_player.dm:457–462`, якорь `/mob/proc/close_spawn_windows`, между закрытием стандартных окон и сбросом звука:
 
 ```dm
 	close_browser(src, "latechoices")
@@ -249,14 +262,23 @@ DreamMaker напрямую для этой проверки не использ
 
 ### 3. Savefile, превью и Setup Event Info
 
-`code/modules/client/preferences_savefile.dm:303–304`, в конце загрузки стандартных preference-полей:
+Добавлен нейтральный метод `/datum/modpack/proc/lobby_ui_character_persisted(datum/preferences/preferences, action)` с пустым fallback. В `preferences_savefile.dm` он вызывается **только на успешном выходе** `load_character()` (action = `"reload"`) и `save_character()` (action = `"save"`, после `S.Unlock()`):
+
+```dm
+SSmodpacks?.lobby_ui_provider?.lobby_ui_character_persisted(src, "save")
+```
+
+Терминальный провайдер обновляет снимок сохранённого слота/уведомление; для classic сразу возвращается. Исходные записи savefile, валидация, ранние возвраты и конечные return не изменены. Не переносить уведомление до IO или в обработчик кнопки.
+
+
+`code/modules/client/preferences_savefile.dm:297–298`, в конце загрузки стандартных preference-полей:
 
 ```dm
 	// SS220 DemonicLynx "Lobby UI" - optional provider load hook; null keeps classic defaults.
 	SSmodpacks?.lobby_ui_provider?.lobby_ui_load_preferences(src, S)
 ```
 
-`preferences_savefile.dm:519–520`, в конце сохранения стандартных preference-полей:
+`preferences_savefile.dm:512–513`, в конце сохранения стандартных preference-полей:
 
 ```dm
 	// SS220 DemonicLynx "Lobby UI" - optional provider save hook; null requires no data.
@@ -309,14 +331,21 @@ DreamMaker напрямую для этой проверки не использ
 
 Terminal provider полностью формирует этот блок. Поэтому он может не показывать отдельные classic-настройки, не удаляя их из стандартного fallback.
 
-`ShowChoices():617–618`, в `MENU_SETTINGS` перед стандартным `Input Settings`:
+`ShowChoices():611–706`, в `MENU_SETTINGS`: провайдер может вернуть полную разметку вкладки. `null` означает, что нужно выполнить неизменённый стандартный блок целиком:
 
 ```dm
-			// SS220 DemonicLynx "Lobby UI" - optional module settings; classic fallback adds nothing.
-			dat += lobby_ui_provider?.lobby_ui_interface_controls(src) || ""
+			// SS220 EDIT - START: optional complete Lobby UI settings renderer; the unchanged upstream block is the fallback.
+			var/custom_interface_controls = lobby_ui_provider?.lobby_ui_interface_controls(src)
+			if(!isnull(custom_interface_controls))
+				dat += custom_interface_controls
+			else
+				// Полный стандартный Input/UI/Chat/Game/Gameplay блок остаётся здесь.
+			// SS220 EDIT - END
 ```
 
-`ShowChoices():720–725`, вместо стандартного безусловного footer/show-browser хвоста:
+Terminal provider возвращает только утверждённые группы и canonical href/proccall для каждого сохранённого пункта. Нельзя подменять этот контракт CSS-скрытием: отсутствующие пункты не должны попадать в terminal DOM. Classic provider/отключённый модуль возвращают `null` и получают полный upstream набор.
+
+`ShowChoices():716–721`, вместо стандартного безусловного footer/show-browser хвоста:
 
 ```dm
 	// SS220 DemonicLynx "Lobby UI" - optional footer/display hooks; upstream browser is the fallback.
@@ -343,7 +372,7 @@ Terminal provider полностью формирует этот блок. По�
 		return
 ```
 
-`SetRecords():942–945`, в начале процедуры:
+`SetRecords():938–941`, в начале процедуры:
 
 ```dm
 	// SS220 DemonicLynx "Lobby UI" - optional records renderer; complete upstream records window is the fallback.
@@ -351,7 +380,7 @@ Terminal provider полностью формирует этот блок. По�
 		return
 ```
 
-`process_link():1108–1112`, перед стандартным `switch(href_list["preference"])`:
+`process_link():1105–1109`, перед стандартным `switch(href_list["preference"])`:
 
 ```dm
 	// SS220 DemonicLynx "Lobby UI" - optional action provider; upstream switch is the complete fallback.
@@ -361,9 +390,9 @@ Terminal provider полностью формирует этот блок. По�
 
 #### Нейтральные шлюзы локализации
 
-Вызовы `lobby_ui_translate()` сейчас находятся на строках `1347`, `1357`, `1699`, `1705`, `1712`, `1733`, `1780`, `1834`, `1947–1948`, `1959`.
+Вызовы `lobby_ui_translate()` сейчас находятся на строках `1708`, `1729`, `1776`, `1830`, `1943–1944`.
 
-Вызовы `lobby_ui_choice()` — на строках `1750`, `1755`, `1761`, `1767`, `1773`, `1807`, `1815`, `1825`, `1847`, `1852`, `1857`, `1862`, `1869`, `1901`, `1916`, `1926`, `1938`, `1942`, `1954`, `1974`.
+Вызовы `lobby_ui_choice()` — на строках `1438`, `1746`, `1751`, `1757`, `1763`, `1769`, `1803`, `1811`, `1821`, `1843`, `1848`, `1853`, `1858`, `1865`, `1897`, `1912`, `1922`, `1934`, `1938`, `1950`, `1970`.
 
 Шаблоны замены стандартных диалогов:
 
@@ -380,6 +409,43 @@ var/choice = SSmodpacks.lobby_ui_choice(
 ```
 
 В core передаются только исходные английские строки и канонические значения. Русские подписи и обратное преобразование выбора хранятся в `modular/lobby_ui/code/shared/character_localization.dm`.
+
+#### Нейтральные шлюзы текстового и числового ввода
+
+Контракт расположен в `modular/_modpack.dm:92–98`, общие fallback-шлюзы — в `modular/_modpacks.dm:30–40`. Вызовы в `code/modules/client/preferences.dm` находятся на строках `1343`, `1353`, `1399`, `1406`, `1414`, `1422`, `1430`, `1444`, `1695`, `1701` и `1955`. Они передают только исходные prompt/title/default и при отсутствии провайдера вызывают обычные TGUI-функции.
+
+Для необязательных `theme` и `presentation` используются `code/modules/tgui_input/text.dm:20,89–101,145`, `code/modules/tgui/tgui_number_input.dm:19,104–115,169` и `code/modules/tgui/tgui_input_list.dm:33,125–137,194`. Presentation применяется общим helper-файлом `tgui/packages/tgui/interfaces/common/TerminalInputPresentation.ts`, а `Window.tsx:102` нейтрально принимает `className/style`. Подключение стилей находится в `tgui/packages/tgui/styles/main.scss:66`. Все новые аргументы необязательны: `null` обязан сохранять стандартный TGUI fallback.
+
+Сохранение модульных настроек, включая `banda_show_combat_gear` и `banda_menu_interface`, выполняется только через существующие provider hooks `lobby_ui_load_preferences()` и `lobby_ui_save_preferences()`. Ключ хранится в общем preferences-savefile. Оба обработчика выбора интерфейса используют `set_and_save_banda_menu_interface()`: результат `save_preferences()` проверяется, при ошибке прежнее значение восстанавливается, а явный повторный выбор не пропускает сохранение и обновление лобби.
+
+#### Каталог загрузки слота
+
+`code/modules/client/preferences.dm:2442–2445`, в начале `/datum/preferences/proc/open_load_dialog()`:
+
+```dm
+/datum/preferences/proc/open_load_dialog(mob/user)
+	// SS220 DemonicLynx "Lobby UI" - optional load-slot renderer; complete upstream slot list is the fallback.
+	if(SSmodpacks?.lobby_ui_provider?.lobby_ui_show_load_dialog(src, user))
+		return
+
+	// Полное стандартное тело open_load_dialog() остаётся ниже без изменений.
+```
+
+Реализация каталога находится в `modular/lobby_ui/code/shared/slot_picker.dm`; она возвращает тот же canonical href `changeslot;num=...`. Если модуль отключён или провайдер вернул `FALSE`, выполняется исходный список `Load Character`.
+
+#### Unicode-лимит имени и точные цветовые образцы
+
+`code/modules/tgui_input/text.dm:160–163` проверяет пользовательский лимит через число символов, а не число байтов:
+
+```dm
+if(max_length)
+	if(length_char(params["entry"]) > max_length) // SS220 DemonicLynx "Lobby UI" - Unicode character count preserves the advertised input limit.
+		return FALSE
+```
+
+Это сохраняет все разрешённые `MAX_NAME_LEN` (28) кириллических символов. Последующая HTML-проверка остаётся отдельной и не должна снова ограничивать строку по числу байтов.
+
+Точные RGB-образцы в `code/modules/client/preferences.dm` имеют нейтральный класс `banda-real-color`. Терминальная оболочка не использует общий `hue-rotate`; палитра применяется напрямую. Общее тонирование — отдельный полупрозрачный слой в `assets/terminal.css`, выключаемый классом `banda-glow-off`; образцы расположены выше декоративных слоёв и не требуют обратной компенсации. Класс не имеет эффекта при отключённом модуле. TGUI использует аналогичный слой только внутри `.BandaTerminalInput`, уже управляемый optional `presentation.glow`. Esc редактора и browse-диалогов обрабатывается в module-local `terminal.js` через существующие ссылки закрытия; стандартные TGUI-поля сохраняют собственную отмену по Esc. `FlavorTextEditor.tsx` только при наличии presentation вызывает тот же `backendSuspendStart`, что и штатная кнопка закрытия. Классическая ветка не получает новый обработчик.
 
 ### 5. Flavor Text Editor
 
@@ -400,7 +466,7 @@ var/choice = SSmodpacks.lobby_ui_choice(
 		ui = new(user, src, "FlavorTextEditor", window_title)
 ```
 
-`tgui/packages/tgui/interfaces/FlavorTextEditor.tsx:19–26`, добавить в `Data`:
+`tgui/packages/tgui/interfaces/FlavorTextEditor.tsx:19–30`, добавить в `Data`:
 
 ```tsx
   custom_presentation?: {
@@ -410,6 +476,10 @@ var/choice = SSmodpacks.lobby_ui_choice(
     revert_label?: string;
     editor_title?: string;
     category_labels?: Record<string, string>;
+    accent_color?: string;
+    text_color?: string;
+    glow_enabled?: boolean;
+    effect_intensity?: 'full' | 'reduced' | 'off';
   };
 ```
 
@@ -437,9 +507,11 @@ var/choice = SSmodpacks.lobby_ui_choice(
 @include meta.load-css('./interfaces/FlavorTextEditor.scss');
 ```
 
-TGUI-мост остаётся вне DM-модуля, потому что TypeScript/SCSS собираются независимо от include в `modular.dme`. Все поля необязательны, поэтому стандартный редактор остаётся fallback.
+TGUI-мост остаётся вне DM-модуля, потому что TypeScript/SCSS собираются независимо от include в `modular.dme`. Для терминальной ветки в `custom_presentation` дополнительно передаются необязательные `accent_color`, `text_color`, `glow_enabled` и `effect_intensity`; `TerminalInputPresentation.ts` устанавливает их как CSS-переменные без `hue-rotate` всего окна. Все поля необязательны, поэтому стандартный редактор остаётся fallback.
 
 ### 6. Нейтральные BYOND browser-host элементы
+
+Дополнение 16.10.2026: общий необязательный presentation также переносит `font_family` и `font_size`. `TerminalInputPresentation.ts`/SCSS применяют их только внутри `.BandaTerminalInput`; отсутствие payload оставляет классические окна без изменений. Тип `FlavorTextEditor.custom_presentation` содержит те же необязательные поля. Новый `tgui/packages/tgui/interfaces/LobbyTypography.tsx` — отдельное окно настроек с Dropdown и Slider, открываемое только module-local `/datum/banda_terminal_typography` из `code/shared/typography.dm`. Этот DM-файл включён только в `_lobby_ui.dme`; внешние provider hooks/savefile glue не расширены. Сохранение двух новых ключей идёт через существующий account-wide hook.
 
 `interface/skin.dmf:239–249`, внутри основного окна:
 
@@ -457,7 +529,7 @@ TGUI-мост остаётся вне DM-модуля, потому что TypeS
 	// SS220 DemonicLynx "Lobby UI" - end neutral lobby browser host.
 ```
 
-`interface/skin.dmf:456–472`, внутри окна `preferences`, после его корневого `MAIN`:
+`interface/skin.dmf:450–472`, внутри окна `preferences`, после его корневого `MAIN`:
 
 ```dmf
 	// SS220 DemonicLynx "Lobby UI" - neutral hidden character-editor browser host; classic Preferences remains the fallback.

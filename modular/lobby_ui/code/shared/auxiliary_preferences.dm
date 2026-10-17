@@ -70,7 +70,8 @@
 					priority_text = "НИЗКИЙ"
 			if(priority == PRIME_PRIORITY && !host_bypass && (!job.prime_priority || user.client?.get_total_human_playtime() < JOB_PLAYTIME_TIER_2))
 				continue
-			html += "<a class='[priority == current_priority ? button_color : "inactive"]' href='byond://?_src_=prefs;preference=job;task=input;text=[job.title];target_priority=[priority];'>[priority_text]</a>"
+			var/priority_class = priority == current_priority ? "[button_color] selected" : "inactive"
+			html += "<a class='[priority_class]' href='byond://?_src_=prefs;preference=job;task=input;text=[job.title];target_priority=[priority];'>[priority_text]</a>"
 			if(priority < LOW_PRIORITY)
 				html += "&nbsp"
 		html += "</td></tr>"

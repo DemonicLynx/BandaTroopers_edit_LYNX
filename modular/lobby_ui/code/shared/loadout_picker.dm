@@ -1,118 +1,163 @@
+/// Registry-owned immutable assets. URLs are resolved through the existing asset transport.
+/datum/gear
+	var/banda_catalog_asset_key
+
+/datum/preferences
+	var/banda_loadout_open = FALSE
+	var/banda_loadout_building = FALSE
+
+/// Own the close callback; the generic browser callback must not overwrite it later.
+/datum/browser/banda_loadout
+	var/datum/preferences/preferences
+	var/generation
+
+/datum/browser/banda_loadout/setup_onclose()
+	set waitfor = FALSE
+	for(var/attempt in 1 to 10)
+		if(!user || !preferences.is_banda_loadout_request(user.mob, generation))
+			return
+		if(winexists(user, window_id))
+			if(preferences.is_banda_loadout_request(user.mob, generation))
+				onclose(user, window_id, user, list("_src_" = "prefs", "preference" = "loadout", "task" = "close_picker", "generation" = generation))
+			return
+
 /datum/preferences/proc/get_banda_loadout_total_cost()
 	var/total_cost = 0
-	if(!islist(gear))
-		return total_cost
-
 	for(var/gear_name in gear)
 		var/datum/gear/gear_entry = GLOB.gear_datums_by_name[gear_name]
 		total_cost += gear_entry?.cost
-
 	return total_cost
 
 /datum/preferences/proc/get_banda_loadout_preview(datum/gear/gear_entry, client/viewer)
 	if(!gear_entry?.path || !viewer || !ispath(gear_entry.path, /atom))
-		return "<span class='loadout-no-preview'>НЕТ ИЗОБРАЖЕНИЯ</span>"
+		return ""
+	if(!gear_entry.banda_catalog_asset_key)
+		var/atom/item_path = gear_entry.path
+		var/icon_file = initial(item_path.icon)
+		var/icon_state = initial(item_path.icon_state)
+		if(!icon_file || isnull(icon_state) || !icon_exists(icon_file, icon_state))
+			return ""
+		var/icon/item_preview = icon(icon_file, icon_state, SOUTH)
+		var/item_color = initial(item_path.color)
+		if(item_color && item_color != "#FFFFFF")
+			item_preview.Blend(item_color, ICON_MULTIPLY)
+		gear_entry.banda_catalog_asset_key = icon2html(item_preview, viewer, keyonly = TRUE)
+	else
+		SSassets.transport.send_assets(viewer, gear_entry.banda_catalog_asset_key)
+	var/item_url = SSassets.transport.get_asset_url(gear_entry.banda_catalog_asset_key)
+	return "<img class='loadout-sprite' src='[item_url]' alt=''>"
 
-	var/atom/item_path = gear_entry.path
-	var/icon_file = initial(item_path.icon)
-	var/icon_state = initial(item_path.icon_state)
-	if(!icon_file || isnull(icon_state) || !(icon_state in icon_states(icon_file)))
-		return "<span class='loadout-no-preview'>НЕТ ИЗОБРАЖЕНИЯ</span>"
+/datum/preferences/proc/get_banda_loadout_presentation_steps()
+	if(uses_banda_english_interface())
+		var/static/list/english_steps = list(
+			"ESTABLISHING ARCHIVE CONNECTION...",
+			"VERIFYING PERSONAL IDENTIFIER...",
+			"PERSONAL IDENTIFIER CONFIRMED...",
+			"INDEXING STORAGE CATALOG...",
+			"LOADING AVAILABLE EQUIPMENT LIST...",
+			"FORMING CATALOG...",
+			"CHECKING THE MONKEY AT THE WORKSTATION...",
+			"PREPARING ISSUE TERMINAL...",
+			"EQUIPMENT CATALOG CONFIRMED",
+		)
+		return english_steps
+	var/static/list/russian_steps = list(
+		"УСТАНОВКА СОЕДИНЕНИЯ С АРХИВОМ...",
+		"ПРОВЕРКА ЛИЧНОГО ИДЕНТИФИКАТОРА...",
+		"ЛИЧНЫЙ ИДЕНТИФИКАТОР ПОДТВЕРЖДЕН...",
+		"ИНДЕКСАЦИЯ СКЛАДСКОГО КАТАЛОГА...",
+		"ЗАГРУЗКА СПИСКА ДОСТУПНОГО СНАРЯЖЕНИЯ...",
+		"ФОРМИРОВАНИЕ СПИСКА...",
+		"ПРОВЕРКА МАРТЫШКИ НА РАБОЧЕМ МЕСТЕ...",
+		"ПОДГОТОВКА ТЕРМИНАЛА ВЫДАЧИ...",
+		"КАТАЛОГ СНАРЯЖЕНИЯ ПОДТВЕРЖДЕН",
+	)
 
-	var/icon/item_preview = icon(icon_file, icon_state, SOUTH)
-	var/item_color = initial(item_path.color)
-	if(item_color && item_color != "#FFFFFF")
-		item_preview.Blend(item_color, ICON_MULTIPLY)
-	var/item_url = icon2html(item_preview, viewer, sourceonly = TRUE)
-	if(!item_url)
-		return "<span class='loadout-no-preview'>НЕТ ИЗОБРАЖЕНИЯ</span>"
+	return russian_steps
 
-	return "<img class='loadout-sprite' src='[item_url]' alt='[html_encode(banda_translate_loadout_label(gear_entry.display_name))]'>"
-
-/proc/get_banda_loadout_picker_styles()
-	return {"
-		<style>
-			.loadout-summary { margin: 10px; padding: 10px 14px; border-left: 4px solid #62e86b; background: rgba(7, 47, 11, .82); color: #8cff93; font-size: 13px; line-height: 19px; letter-spacing: 1px; }
-			.loadout-category { margin: 9px 10px; border: 1px solid #2f9e39; background: rgba(0, 19, 3, .84); box-shadow: inset 0 0 17px rgba(59, 255, 72, .045); }
-			a.loadout-category-toggle, a.loadout-category-toggle:link, a.loadout-category-toggle:visited { display: flex; align-items: center; min-height: 44px; padding: 9px 13px; border-left: 5px solid #4cd858; background: rgba(8, 50, 12, .82); color: #91ff98; font-size: 14px; line-height: 20px; letter-spacing: 2px; text-transform: uppercase; }
-			a.loadout-category-toggle:hover { background: rgba(31, 101, 38, .9); color: #caffce; }
-			.loadout-category-marker { flex: 0 0 34px; color: #b2ffb7; font-size: 18px; }
-			.loadout-category-name { flex: 1 1 auto; }
-			.loadout-category-count { flex: 0 0 auto; color: #54bf5d; font-size: 10px; letter-spacing: 1px; }
-			.loadout-category-items { display: flex; flex-wrap: wrap; align-content: flex-start; padding: 8px; border-top: 1px dashed rgba(79, 211, 88, .48); }
-			a.loadout-card, a.loadout-card:link, a.loadout-card:visited { position: relative; display: flex; flex-direction: column; width: 154px; height: 174px; margin: 5px; padding: 8px; overflow: hidden; border: 1px solid #287f30; background: rgba(1, 24, 4, .9); color: #75dc7c; box-shadow: inset 0 0 16px rgba(49, 255, 62, .04); }
-			a.loadout-card:hover { border-color: #8aff92; background: rgba(18, 68, 23, .9); color: #c6ffca; box-shadow: 0 0 11px rgba(62, 255, 75, .24), inset 0 0 19px rgba(61, 255, 73, .09); }
-			.loadout-sprite-box { flex: 0 0 108px; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid rgba(67, 216, 78, .45); background: radial-gradient(circle at 50% 50%, rgba(42, 92, 48, .58), rgba(7, 19, 9, .96) 68%); }
-			.loadout-sprite { display: block; width: 96px; height: 96px; object-fit: contain; image-rendering: pixelated; image-rendering: crisp-edges; filter: drop-shadow(0 0 7px rgba(135, 255, 143, .38)); }
-			.loadout-no-preview { color: #4e8e53; font-size: 9px; line-height: 13px; letter-spacing: 1px; text-align: center; }
-			.loadout-card-name { flex: 1 1 auto; min-height: 0; padding: 6px 2px 0; overflow: hidden; font-size: 10px; line-height: 13px; text-align: center; text-transform: uppercase; }
-			.loadout-card-cost { flex: 0 0 auto; padding-top: 3px; color: #a4ffab; font-size: 9px; line-height: 12px; text-align: center; letter-spacing: 1px; }
-		</style>
-		<script type='text/javascript'>
-			function toggleLoadoutCategory(contentId, markerId) {
-				var content = document.getElementById(contentId);
-				var marker = document.getElementById(markerId);
-				if (!content || !marker) return;
-				var opening = content.style.display === 'none';
-				content.style.display = opening ? 'flex' : 'none';
-				marker.innerHTML = opening ? '&#91;-&#93;' : '&#91;+&#93;';
-			}
-		</script>
-	"}
-
-/datum/preferences/proc/show_banda_loadout_picker(mob/user, open_category)
+/// Open once. The browser requests data only after installing its receiver.
+/datum/preferences/proc/show_banda_loadout_picker(mob/user)
 	if(!user?.client)
 		return
+	var/generation = ++banda_loadout_render_generation
+	banda_loadout_open = TRUE
+	banda_loadout_building = FALSE
+	var/datum/asset/simple/banda_terminal/assets = get_asset_datum(/datum/asset/simple/banda_terminal)
+	var/list/urls = assets.get_url_mappings()
+	var/english = uses_banda_english_interface()
+	var/dat = get_banda_accessory_picker_styles()
+	dat += get_banda_terminal_styles("loadout")
+	dat += "<div id='bandaLoadout' class='picker-crt[get_banda_terminal_effect_class()][get_banda_terminal_glow_class()]' data-generation='[generation]' data-equipped='[english ? "EQUIPPED" : "ЭКИПИРОВАНО"]' data-points='[english ? "PTS" : "ОЧК."]' style='[get_banda_terminal_palette_style()]'><div class='picker-terminal'>"
+	dat += "<div class='picker-header'><div class='picker-heading'><div class='picker-title'>[english ? "LOADOUT CATALOG" : "КАТАЛОГ ЛОДАУТА"]</div><div class='picker-subtitle'>[english ? "ARCHIVE DATA INITIALIZATION" : "ИНИЦИАЛИЗАЦИЯ ДАННЫХ АРХИВА"]</div></div><div class='picker-actions'>"
+	dat += "<a id='loadoutReset' class='picker-close' style='display:none' href='byond://?_src_=prefs;preference=loadout;task=reset_picker;generation=[generation]'>[english ? "RESET" : "СБРОСИТЬ"]</a><a class='picker-close' href='byond://?_src_=prefs;preference=loadout;task=close_picker;generation=[generation]'>[english ? "CLOSE" : "ЗАКРЫТЬ"]</a></div></div>"
+	dat += "<div id='loadoutLoader' class='loadout-loader'>"
+	var/list/steps = get_banda_loadout_presentation_steps()
+	for(var/index in 1 to length(steps))
+		dat += "<div class='loadout-command' style='display:[index == 1 ? "flex" : "none"]'><span class='loadout-command-text'>&gt; [steps[index]]</span><span class='loadout-command-status'>&#91; ... &#93;</span></div>"
+	dat += "<div id='loadoutWait' class='loadout-final-wait' style='display:none'>&gt; [english ? "LOADING DATA" : "ЗАГРУЗКА ДАННЫХ"]<span class='loadout-wait-dots'><span>.</span><span>.</span><span>.</span></span></div></div><div id='loadoutCatalog' style='display:none'></div></div></div><script src='[urls["banda-loadout.js"]]'></script>"
+	var/datum/browser/banda_loadout/popup = new(user, "banda_loadout_picker", english ? "Loadout Catalog" : "Каталог лодаута", GLOB.stylesheets[stylesheet] || GLOB.stylesheets["Modern"], 900, 720)
+	popup.preferences = src
+	popup.generation = generation
+	popup.set_content(dat)
+	popup.open()
 
-	if(!islist(gear))
-		gear = list()
+/datum/preferences/proc/is_banda_loadout_request(mob/user, generation)
+	return user?.client == owner && owner && uses_banda_terminal_interface() && banda_loadout_open && generation == banda_loadout_render_generation
 
-	var/list/sorted_categories = list()
-	for(var/category in GLOB.gear_datums_by_category)
-		sorted_categories += category
-	sorted_categories = sortList(sorted_categories)
+/datum/preferences/proc/send_banda_loadout_update(mob/user, generation, list/payload)
+	if(!is_banda_loadout_request(user, generation))
+		return
+	payload["generation"] = generation
+	user << output(list2params(list(json_encode(payload))), "banda_loadout_picker.browser:receiveBandaLoadout")
 
-	var/interface_hue_rotation = get_banda_terminal_hue_rotation()
-	var/text_override_class = get_banda_terminal_text_override_class()
-	var/text_override_style = get_banda_terminal_text_override_style()
-	var/effect_class = get_banda_terminal_effect_class()
-	var/dat = get_banda_accessory_picker_styles(-interface_hue_rotation)
-	dat += get_banda_loadout_picker_styles()
-	dat += "<body><div class='picker-crt[text_override_class][effect_class]' style='filter: hue-rotate([interface_hue_rotation]deg);[text_override_style]'><div class='picker-terminal'>"
-	dat += "<div class='picker-header'><div class='picker-heading'><div class='picker-title'>КАТАЛОГ ЛОДАУТА</div><div class='picker-subtitle'>РАСКРОЙТЕ КАТЕГОРИЮ И ВЫБЕРИТЕ ПРЕДМЕТ</div></div>"
-	dat += "<a class='picker-close' href='byond://?_src_=prefs;preference=loadout;task=close_picker'>ЗАКРЫТЬ</a></div>"
+/// No HTML rebuild, sorting or image work on a selection change.
+/datum/preferences/proc/refresh_banda_loadout_picker(mob/user)
+	var/list/equipped = list()
+	for(var/gear_name in gear)
+		var/datum/gear/entry = GLOB.gear_datums_by_name[gear_name]
+		if(entry)
+			equipped += "loadout-[md5(REF(entry))]"
 	var/total_cost = get_banda_loadout_total_cost()
-	dat += "<div class='loadout-summary'>ИСПОЛЬЗОВАНО ОЧКОВ: [total_cost] / [MAX_GEAR_COST] &nbsp;//&nbsp; ОСТАЛОСЬ: [MAX_GEAR_COST - total_cost]</div>"
+	var/summary = "[uses_banda_english_interface() ? "POINTS USED" : "ИСПОЛЬЗОВАНО ОЧКОВ"]: [total_cost] / [MAX_GEAR_COST] // [uses_banda_english_interface() ? "REMAINING" : "ОСТАЛОСЬ"]: [MAX_GEAR_COST - total_cost]"
+	send_banda_loadout_update(user, banda_loadout_render_generation, list("equipped" = equipped, "summary" = summary, "error_feedback" = banda_loadout_error_feedback))
+	banda_loadout_error_feedback = FALSE
 
-	if(!length(sorted_categories))
-		dat += "<div class='picker-empty'>НЕТ ДОСТУПНЫХ КАТЕГОРИЙ</div>"
-	else
-		var/category_index = 0
-		for(var/category in sorted_categories)
-			category_index++
-			var/list/category_gear = GLOB.gear_datums_by_category[category]
-			if(!islist(category_gear))
+/// This registry is initialized once; category keys are labels including the price.
+/datum/preferences/proc/get_banda_sorted_loadout_catalog()
+	var/static/list/catalog
+	if(!catalog)
+		catalog = list()
+		for(var/category in sortList(GLOB.gear_datums_by_category))
+			catalog[category] = sortList(GLOB.gear_datums_by_category[category])
+	return catalog
+
+/datum/preferences/proc/prepare_banda_loadout_picker(mob/user, generation)
+	if(!is_banda_loadout_request(user, generation) || banda_loadout_building)
+		return
+	banda_loadout_building = TRUE
+	if(!islist(GLOB.gear_datums_by_category))
+		send_banda_loadout_update(user, generation, list("error" = uses_banda_english_interface() ? "CATALOG UNAVAILABLE" : "КАТАЛОГ НЕДОСТУПЕН"))
+		return
+	var/list/catalog = get_banda_sorted_loadout_catalog()
+	var/dat = "<div id='loadoutSummary' class='loadout-summary'></div>"
+	var/category_index = 0
+	for(var/category in catalog)
+		category_index++
+		var/list/items = catalog[category]
+		var/list/category_gear = GLOB.gear_datums_by_category[category]
+		var/content_id = "loadout-category-[category_index]"
+		dat += "<div class='loadout-category'><a class='loadout-category-toggle' href='#' onclick=\"toggleLoadoutCategory('[content_id]', this); return false;\"><span class='loadout-category-marker'>&#91;+&#93;</span><span class='loadout-category-name'>[html_encode(banda_translate_loadout_label(category, banda_interface_language))]</span><span class='loadout-category-count'>[length(items)]</span></a><div id='[content_id]' class='loadout-category-items' style='display:none'>"
+		for(var/gear_label in items)
+			CHECK_TICK
+			if(!is_banda_loadout_request(user, generation))
+				return
+			var/datum/gear/entry = category_gear[gear_label]
+			if(!entry)
 				continue
-			var/list/sorted_gear_labels = list()
-			for(var/gear_label in category_gear)
-				sorted_gear_labels += gear_label
-			sorted_gear_labels = sortList(sorted_gear_labels)
-			var/is_open = category == open_category
-			var/content_id = "loadout-category-[category_index]"
-			var/marker_id = "loadout-marker-[category_index]"
-			var/safe_category = html_encode("[banda_translate_loadout_label(category)]")
-			dat += "<div class='loadout-category'>"
-			dat += "<a class='loadout-category-toggle' href='#' onclick=\"toggleLoadoutCategory('[content_id]', '[marker_id]'); return false;\"><span id='[marker_id]' class='loadout-category-marker'>[is_open ? "&#91;-&#93;" : "&#91;+&#93;"]</span><span class='loadout-category-name'>[safe_category]</span><span class='loadout-category-count'>[length(sorted_gear_labels)]</span></a>"
-			dat += "<div id='[content_id]' class='loadout-category-items' style='display: [is_open ? "flex" : "none"];'>"
-			for(var/gear_label in sorted_gear_labels)
-				var/datum/gear/gear_entry = category_gear[gear_label]
-				if(!gear_entry)
-					continue
-				var/item_preview = get_banda_loadout_preview(gear_entry, user.client)
-				var/safe_item_name = html_encode("[banda_translate_loadout_label(gear_entry.display_name)]")
-				dat += "<a class='loadout-card' href='byond://?_src_=prefs;preference=loadout;task=add;gear=\ref[gear_entry]'>"
-				dat += "<span class='loadout-sprite-box'>[item_preview]</span><span class='loadout-card-name'>[safe_item_name]</span><span class='loadout-card-cost'>[gear_entry.cost] ОЧК.</span></a>"
-			dat += "</div></div>"
-
-	dat += "</div></div></body>"
-	show_browser(user, dat, "Каталог лодаута", "banda_loadout_picker", width = 900, height = 720)
+			var/preview = get_banda_loadout_preview(entry, user.client)
+			dat += "<a id='loadout-[md5(REF(entry))]' class='loadout-card' href='byond://?_src_=prefs;preference=loadout;task=toggle;gear=\ref[entry];generation=[generation]'><span class='loadout-sprite-box'>[preview]</span><span class='loadout-card-name'>[html_encode(banda_translate_loadout_label(entry.display_name, banda_interface_language))]</span><span class='loadout-card-cost'>[entry.cost] [uses_banda_english_interface() ? "PTS" : "ОЧК."]</span><span class='loadout-card-state'></span></a>"
+		dat += "</div></div>"
+	// Actual HTML and assets are prepared before the client may complete its sequence.
+	send_banda_loadout_update(user, generation, list("html" = dat))
+	if(is_banda_loadout_request(user, generation))
+		refresh_banda_loadout_picker(user)

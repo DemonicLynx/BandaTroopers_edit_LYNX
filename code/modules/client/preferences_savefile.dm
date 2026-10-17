@@ -796,6 +796,8 @@
 		S["tts_seed"] >> tts_seed
 	// =================================
 
+	// SS220 EDIT: optional post-success notification; classic persistence remains unchanged.
+	SSmodpacks?.lobby_ui_provider?.lobby_ui_character_persisted(src, "reload")
 	return 1
 
 /datum/preferences/proc/save_character()
@@ -905,6 +907,8 @@
 
 	S.Unlock()
 
+	// SS220 EDIT: optional post-success notification; failures never report a saved slot.
+	SSmodpacks?.lobby_ui_provider?.lobby_ui_character_persisted(src, "save")
 	return TRUE
 
 /// checks through keybindings for outdated unbound keys and updates them

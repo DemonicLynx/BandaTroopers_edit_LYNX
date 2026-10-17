@@ -61,12 +61,22 @@
 		if(!equipped)
 			qdel(cosmetic_item)
 
+/// Applies only appearance-safe prosthetic traits to the preferences mannequin.
+/// Other character traits may alter skills, components or inventory and must never run on a preview mob.
+/datum/preferences/proc/apply_banda_preview_robotic_limbs()
+	if(!preview_dummy || !islist(traits))
+		return
+	for(var/trait_path in traits)
+		if(!ispath(trait_path, /datum/character_trait/robo_limb))
+			continue
+		var/datum/character_trait/robo_limb/robotic_limb = GLOB.character_traits[trait_path]
+		robotic_limb?.apply_trait(preview_dummy)
+
 /datum/preferences/proc/get_banda_character_preferences_preview(client/viewer)
 	if(!viewer || !preview_dummy)
 		return "<div class='prefs-preview-fallback'>NO PREVIEW</div>"
 
-	var/icon/flattened_character = getFlatIcon(preview_dummy, defdir = preview_dummy.dir, no_anim = TRUE)
-	var/character_url = icon2html(flattened_character, viewer, sourceonly = TRUE)
+	var/character_url = get_banda_preview_asset(viewer, preview_dummy.dir)
 	if(!character_url)
 		return "<div class='prefs-preview-fallback'>NO PREVIEW</div>"
 

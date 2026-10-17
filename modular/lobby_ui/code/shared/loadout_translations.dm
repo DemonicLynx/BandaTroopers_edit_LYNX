@@ -268,8 +268,10 @@
 	)
 	return translations
 
-/proc/banda_translate_loadout_label(value)
+/proc/banda_translate_loadout_label(value, interface_language = "ru")
 	if(isnull(value))
+		return value
+	if(interface_language == "en")
 		return value
 	var/list/translations = get_banda_loadout_translations()
 	return translations["[value]"] || value

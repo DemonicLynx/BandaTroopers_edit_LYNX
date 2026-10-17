@@ -72,10 +72,60 @@
 		"Age" = "Возраст",
 		"Gender" = "Пол",
 		"Skin Color" = "Цвет кожи",
-		"Body Size" = "Телосложение",
-		"Body Muscularity" = "Мускулатура",
+		"Body Size" = "Комплекция",
+		"Body Muscularity" = "Телосложение",
 		"Traits" = "Особенности",
 		"Character Traits" = "Особенности персонажа",
+		"Biology" = "Биология",
+		"Hair Dyes" = "Окрашивание волос",
+		"Languages" = "Языки",
+		"Robotic Limb" = "Роботизированные конечности",
+		"Hair Dye" = "Окрашивание волос",
+		"Enables hair gradients in the character creation screen." = "Разрешает использовать градиентное окрашивание волос в редакторе персонажа.",
+		"Bad Eyesight" = "Плохое зрение",
+		"A condition in which close objects appear clearly, but far ones don't." = "Близкие объекты видны чётко, а удалённые — размыто.",
+		"Opiate Receptor Deficiency" = "Недостаточность опиатных рецепторов",
+		"Due to overuse of opiates or a genetic fluke, this condition reduces the potency of all basic painkilling drugs." = "Из-за злоупотребления опиатами или генетической особенности обычные обезболивающие действуют слабее.",
+		"Lisping" = "Шепелявость",
+		"You have difficulty with pronouncing 'S' sounds (and similar). Expect to be mocked mercilessly." = "Персонажу трудно произносить свистящие звуки. Окружающие наверняка это заметят.",
+		"Bad Leg" = "Больная нога",
+		"Your left (or right, if the left's robotic) leg suffered an undetermined wound a long time ago that never fully healed. Walking around without a cane will eventually cause you to freeze in pain, but you start with one." = "Старая травма ноги так и не зажила. Долгая ходьба без трости вызывает приступ боли; персонаж начинает с тростью.",
+		"Hardcore" = "Одна жизнь",
+		"One life. One chance. (Rifleman Only)" = "Одна жизнь. Один шанс. Доступно только стрелку.",
+		"Iron Teeth" = "Железные зубы",
+		"You've got iron teeth or really good dental insurance. Items in your face slot won't fall out when you go down." = "Предметы в слоте лица не выпадают, когда персонаж теряет сознание.",
+		"Prosthetic Left Leg" = "Протез левой ноги",
+		"Prosthetic Right Leg" = "Протез правой ноги",
+		"Prosthetic Left Arm" = "Протез левой руки",
+		"Prosthetic Right Arm" = "Протез правой руки",
+		"Has their Left Leg replaced with a prosthetic." = "Левая нога заменена протезом.",
+		"Has their Right Leg replaced with a prosthetic." = "Правая нога заменена протезом.",
+		"Has their Left Arm replaced with a prosthetic." = "Левая рука заменена протезом.",
+		"Has their Right Arm replaced with a prosthetic." = "Правая рука заменена протезом.",
+		"Speaks Russian" = "Владеет русским языком",
+		"Speaks Japanese" = "Владеет японским языком",
+		"Speaks Chinese" = "Владеет китайским языком",
+		"Speaks Scandinavian" = "Владеет скандинавским языком",
+		"Speaks German" = "Владеет немецким языком",
+		"Speaks Spanish" = "Владеет испанским языком",
+		"Speaks Portuguese" = "Владеет португальским языком",
+		"Speaks French" = "Владеет французским языком",
+		"Speaks Filipino" = "Владеет филиппинским языком",
+		"Speaks Russian Patois" = "Владеет русским патуа",
+		"Speaks English" = "Владеет английским языком",
+		"Speaks Polish" = "Владеет польским языком",
+		"Can speak the language Russian." = "Может говорить на русском языке.",
+		"Can speak the language Japanese." = "Может говорить на японском языке.",
+		"Can speak the language Chinese." = "Может говорить на китайском языке.",
+		"Can speak the language Scandinavian." = "Может говорить на скандинавском языке.",
+		"Can speak the language German." = "Может говорить на немецком языке.",
+		"Can speak the language Spanish." = "Может говорить на испанском языке.",
+		"Can speak the language Portuguese." = "Может говорить на португальском языке.",
+		"Can speak the language French." = "Может говорить на французском языке.",
+		"Can speak the language Filipino." = "Может говорить на филиппинском языке.",
+		"Can speak the language Russian Patois." = "Может говорить на русском патуа.",
+		"Can speak the language English. Not at all useful if you're in the Marine Corps." = "Может говорить на английском языке. Для службы в Корпусе морской пехоты это не слишком полезно.",
+		"Can speak the language Polish." = "Может говорить на польском языке.",
 		"Occupation Choices" = "Выбор должности",
 		"Set Role Preferences" = "Настроить предпочтения ролей",
 		"Assign Character Slots to Roles" = "Назначить слоты персонажей ролям",
@@ -108,7 +158,7 @@
 		"Origin" = "Происхождение",
 		"Religion" = "Религия",
 		"Corporate Relation" = "Отношение к корпорации",
-		"Preferred Squad" = "Предпочтительный отряд",
+		"Preferred Squad" = "Выбор отряда",
 		"Fluff Information" = "Дополнительные сведения",
 		"You are banned from using character records." = "Вам запрещено использовать записи персонажа.",
 		"Records" = "Записи",
@@ -121,6 +171,13 @@
 		"Delta Squad Name" = "Название отряда Дельта",
 		"Dropship Camo" = "Камуфляж десантного корабля",
 		"Dropship Name" = "Название десантного корабля",
+		"Choose your Platoon's name:" = "Введите название взвода:",
+		"Choose your Alpha squad name:" = "Введите название отряда Альфа:",
+		"Choose your Bravo squad name:" = "Введите название отряда Браво:",
+		"Choose your Charlie squad name:" = "Введите название отряда Чарли:",
+		"Choose your Delta squad name:" = "Введите название отряда Дельта:",
+		"Choose your platoon's dropship camo:" = "Выберите камуфляж десантного корабля:",
+		"Choose your Platoon's Dropship name:" = "Введите название десантного корабля:",
 		"Xenomorph Information" = "Данные ксеноморфа",
 		"Xeno prefix" = "Префикс ксеноморфа",
 		"Xeno postfix" = "Суффикс ксеноморфа",
@@ -162,6 +219,11 @@
 		"Nothing here. For now." = "Здесь пока ничего нет.",
 		"You do not have the whitelist for this role." = "У вас нет доступа к этой роли.",
 		"Input Settings" = "Настройки управления",
+		"HUD Settings" = "Настройка HUD",
+		"Ghost Settings" = "Настройки призрака",
+		"Music and Effects" = "Музыка и эффекты",
+		"Game Window Settings" = "Настройки окна игры",
+		"Additional" = "Дополнительно",
 		"Mode" = "Режим",
 		"Keybinds" = "Назначение клавиш",
 		"View Keybinds" = "Просмотреть клавиши",
@@ -700,28 +762,140 @@
 
 /datum/preferences/proc/banda_localized_preference_choice(mob/user, prompt, title, list/canonical_choices)
 	var/list/localized_choices = get_banda_localized_preference_choices(canonical_choices)
-	var/selected_label = tgui_input_list(user, prompt, title, localized_choices)
+	var/selected_label = tgui_input_list(user, prompt, title, localized_choices, theme = "crtgreen", presentation = get_banda_tgui_input_presentation())
 	if(isnull(selected_label))
 		return null
 	return localized_choices[selected_label]
 
-/proc/get_banda_character_preferences_translation_script()
-	var/translations_json = json_encode(get_banda_character_preferences_translations())
-	return {"
+/proc/get_banda_character_preferences_translation_script(interface_language = "ru")
+	var/static/list/cached_scripts = list()
+	if(cached_scripts[interface_language])
+		return cached_scripts[interface_language]
+	var/list/translations = get_banda_character_preferences_translations()
+	var/list/phrase_translations = list(
+		list(" (Camo Conforming)", " (под камуфляж)"),
+		list(" (Camo Non-Conforming)", " (без камуфляжа)"),
+		list(" (Classic)", " (классический)"),
+		list(" (Jungle)", " (джунгли)"),
+		list(" (Desert)", " (пустыня)"),
+		list(" (Snow)", " (снег)"),
+		list(" points", " очков"),
+		list(" Hours", " ч."),
+		list("Be ", "Играть как "),
+	)
+	if(interface_language == "en")
+		var/list/english_translations = list()
+		for(var/english_text in translations)
+			english_translations[translations[english_text]] = english_text
+		english_translations += list(
+			"ТЕРМИНАЛ ПЕРСОНАЛА" = "PERSONNEL TERMINAL",
+			"ЛИЧНОЕ ДЕЛО" = "PERSONNEL FILE",
+			"ПЕРСОНАЖ" = "CHARACTER",
+			"Настройка персонажа" = "Character setup",
+			"МАНИФЕСТ" = "MANIFEST",
+			"Список текущего экипажа" = "Current crew roster",
+			"НАБЛЮДАТЬ" = "OBSERVE",
+			"Войти как наблюдатель" = "Join as observer",
+			"ВОЗРАСТ" = "AGE",
+			"ПОЛ" = "GENDER",
+			"ВИД" = "SPECIES",
+			"КОМПЛЕКЦИЯ" = "BUILD",
+			"ТЕЛОСЛОЖЕНИЕ" = "BODY TYPE",
+			"ПРОИСХОЖДЕНИЕ" = "ORIGIN",
+			"ОТРЯД" = "SQUAD",
+			"ОТНОШЕНИЕ К WY" = "WY RELATION",
+			"ДОЛЖНОСТЬ" = "ASSIGNMENT",
+			"АРХИВ ПЕРСОНАЛА" = "PERSONNEL ARCHIVE",
+			"ЛИЧНОСТЬ ПОДТВЕРЖДЕНА" = "IDENTITY CONFIRMED",
+			"ДЕТАЛИ МИССИИ" = "MISSION DETAILS",
+			"СИСТЕМА АКТИВНА" = "SYSTEM ACTIVE",
+			"ГОТОВ" = "READY",
+			"НЕ ГОТОВ" = "NOT READY",
+			"ПРИСОЕДИНИТЬСЯ" = "JOIN",
+			"Ожидание начала операции" = "Awaiting operation start",
+			"Нажмите, чтобы подтвердить" = "Press to confirm",
+			"Войти в текущий раунд" = "Join the current round",
+			"ПОИСК ЗАПИСИ..." = "SEARCHING RECORD...",
+			"ИДЕНТИФИКАЦИЯ..." = "IDENTIFICATION...",
+			"ДОСТУП РАЗРЕШЁН" = "ACCESS GRANTED",
+			"КАТАЛОГ ЛОДАУТА" = "LOADOUT CATALOG",
+			"РАСКРОЙТЕ КАТЕГОРИЮ И ВЫБЕРИТЕ ПРЕДМЕТ" = "EXPAND A CATEGORY AND SELECT AN ITEM",
+			"ЗАКРЫТЬ" = "CLOSE",
+			"ИСПОЛЬЗОВАНО ОЧКОВ" = "POINTS USED",
+			"ОСТАЛОСЬ" = "REMAINING",
+			"НЕТ ДОСТУПНЫХ КАТЕГОРИЙ" = "NO CATEGORIES AVAILABLE",
+			"ОЧК." = "PTS",
+			"ВЫБРАНО" = "SELECTED",
+			"Личные Настройки Интерфейса" = "Personal Interface Settings",
+			"Подсветка персонажа в личном деле" = "Character highlight in personnel file",
+			"Интенсивность эффектов" = "Effect intensity",
+			"Смена языка" = "Language",
+			"Свечение интерфейса" = "Interface glow",
+			"Смена лобби" = "Lobby style",
+			"Изменение цвета интерфейса" = "Interface color",
+			"Изменение цвета текста интерфейса" = "Interface text color",
+			"Сброс изменений интерфейса" = "Reset interface settings",
+			"Терминальный" = "Terminal",
+			"Полная" = "Full",
+			"Сниженная" = "Reduced",
+			"Выключена" = "Off",
+			"Вкл" = "On",
+			"Выкл" = "Off",
+			"Личная экипировка" = "Personal loadout",
+			"Включить боевое снаряжение" = "Enable combat equipment",
+			"Выключить боевое снаряжение" = "Disable combat equipment",
+			"Добавить" = "Add",
+			"Удалить" = "Remove",
+			"Очистить" = "Clear",
+			"Нет" = "None",
+			"Выберите вариант по спрайту" = "Select an option by its sprite",
+			"НЕТ ДОСТУПНЫХ ВАРИАНТОВ" = "NO OPTIONS AVAILABLE",
+			"МАНИФЕСТ ПЕРСОНАЛА" = "PERSONNEL MANIFEST",
+			"ТЕКУЩИЙ СОСТАВ ЭКИПАЖА" = "CURRENT CREW ROSTER",
+			"ПРИОРИТЕТЫ ДОЛЖНОСТЕЙ" = "JOB PRIORITIES",
+			"ВЫБЕРИТЕ ВЕРОЯТНОСТЬ НАЗНАЧЕНИЯ" = "SELECT ASSIGNMENT PROBABILITY",
+			"НАЗНАЧЕНИЕ СЛОТОВ" = "SLOT ASSIGNMENT",
+			"ЗАКРЕПИТЕ ПЕРСОНАЖЕЙ ЗА ДОЛЖНОСТЯМИ" = "ASSIGN CHARACTERS TO JOBS",
+			"ЗАБЛОКИРОВАНО" = "LOCKED",
+			"ТРЕБУЕТСЯ ВАЙТЛИСТ" = "WHITELIST REQUIRED",
+			"НЕДОСТАТОЧНО ВРЕМЕНИ" = "INSUFFICIENT PLAYTIME",
+			"НИКОГДА" = "NEVER",
+			"ГЛАВНЫЙ" = "PRIMARY",
+			"ВЫСОКИЙ" = "HIGH",
+			"СРЕДНИЙ" = "MEDIUM",
+			"НИЗКИЙ" = "LOW",
+			"СБРОСИТЬ" = "RESET",
+			"ЗАПИСИ ПЕРСОНАЖА" = "CHARACTER RECORDS",
+			"МЕДИЦИНСКОЕ // СЛУЖЕБНОЕ // ОХРАННОЕ ДОСЬЕ" = "MEDICAL // EMPLOYMENT // SECURITY FILE",
+			"ФАЙЛ // 01" = "FILE // 01",
+			"ФАЙЛ // 02" = "FILE // 02",
+			"ФАЙЛ // 03" = "FILE // 03",
+			"МЕДИЦИНСКАЯ ЗАПИСЬ" = "MEDICAL RECORD",
+			"СЛУЖЕБНАЯ ЗАПИСЬ" = "EMPLOYMENT RECORD",
+			"ОХРАННАЯ ЗАПИСЬ" = "SECURITY RECORD",
+			"Случайная должность, если выбранные недоступны" = "Random job if selected jobs are unavailable",
+			"Стать морпехом, если выбранные должности недоступны" = "Become a marine if selected jobs are unavailable",
+			"Вернуться в лобби, если выбранные должности недоступны" = "Return to lobby if selected jobs are unavailable",
+			"Назначение слота не используется при входе в начале раунда" = "Slot assignment is not used when joining at round start",
+			"Назначение слота используется при входе в начале раунда" = "Slot assignment is used when joining at round start",
+			"Назначение слота не используется при входе в текущий раунд" = "Slot assignment is not used when joining the current round",
+			"Назначение слота используется при входе в текущий раунд" = "Slot assignment is used when joining the current round",
+		)
+		translations = english_translations
+		phrase_translations = list(
+			list("СИСТЕМА АКТИВНА", "SYSTEM ACTIVE"),
+			list("ИСПОЛЬЗОВАНО ОЧКОВ", "POINTS USED"),
+			list("ОСТАЛОСЬ", "REMAINING"),
+			list(" ОЧК.", " PTS"),
+			list("ЛИЧНОЕ ДЕЛО", "PERSONNEL FILE"),
+		)
+	var/translations_json = json_encode(translations)
+	var/phrase_translations_json = json_encode(phrase_translations)
+	var/script = {"
 		<script type='text/javascript'>
 			(function() {
 				var translations = [translations_json];
-				var phraseTranslations = \[
-					\[' (Camo Conforming)', ' (под камуфляж)'\],
-					\[' (Camo Non-Conforming)', ' (без камуфляжа)'\],
-					\[' (Classic)', ' (классический)'\],
-					\[' (Jungle)', ' (джунгли)'\],
-					\[' (Desert)', ' (пустыня)'\],
-					\[' (Snow)', ' (снег)'\],
-					\[' points', ' очков'\],
-					\[' Hours', ' ч.'\],
-					\['Be ', 'Играть как '\]
-				\];
+				var phraseTranslations = [phrase_translations_json];
 				function translateCore(core) {
 					if (Object.prototype.hasOwnProperty.call(translations, core)) return translations\[core\];
 					var colon = core.length && core.charAt(core.length - 1) === ':';
@@ -747,12 +921,16 @@
 					if (!node) return;
 					if (node.nodeType === 3) { translateTextNode(node); return; }
 					if (node.nodeType !== 1) return;
+					if (/^(TEXTAREA|INPUT|SCRIPT|STYLE)$/i.test(node.tagName || '')) return;
+					var href = node.getAttribute ? (node.getAttribute('href') || '') : '';
+					if (/(?:\[?;&\])preference=(?:name|slot_label|squad_name_alpha|squad_name_bravo|squad_name_charlie|squad_name_delta|platoon_name|dropship_name)(?:\[;&\]|$)/.test(href)) return;
 					if ((' ' + (node.className || '') + ' ').indexOf(' prefs-no-translate ') !== -1) return;
 					if (node.title) node.title = translateCore(node.title);
 					if (node.alt) node.alt = translateCore(node.alt);
 					for (var child = node.firstChild; child; child = child.nextSibling) walk(child);
 				}
 				function runTranslation() {
+					document.documentElement.setAttribute('data-banda-language', '[interface_language]');
 					document.title = translateCore(document.title || 'Preferences');
 					walk(document.body);
 					var links = document.getElementsByTagName('a');
@@ -760,7 +938,7 @@
 						var href = links\[i\].getAttribute('href') || '';
 						if (href.indexOf('preference=UIalpha') === -1) continue;
 						var label = links\[i\].previousSibling;
-						if (label && label.nodeType === 3) label.nodeValue = 'Прозрачность: ';
+						if (label && label.nodeType === 3 && '[interface_language]' !== 'en') label.nodeValue = 'Прозрачность: ';
 					}
 				}
 				if (document.addEventListener) document.addEventListener('DOMContentLoaded', runTranslation, false);
@@ -769,3 +947,5 @@
 			})();
 		</script>
 	"}
+	cached_scripts[interface_language] = script
+	return script

@@ -66,7 +66,7 @@
 	return null
 
 /datum/modpack/proc/lobby_ui_interface_controls(datum/preferences/preferences)
-	return ""
+	return null
 
 /datum/modpack/proc/lobby_ui_show_job_preferences(datum/preferences/preferences, mob/user, limit, list/split_jobs, width, height)
 	return FALSE
@@ -77,6 +77,9 @@
 /datum/modpack/proc/lobby_ui_show_records(datum/preferences/preferences, mob/user)
 	return FALSE
 
+/datum/modpack/proc/lobby_ui_show_load_dialog(datum/preferences/preferences, mob/user)
+	return FALSE
+
 /datum/modpack/proc/lobby_ui_handle_preferences_topic(datum/preferences/preferences, mob/user, list/href_list)
 	return FALSE
 
@@ -85,3 +88,13 @@
 
 /datum/modpack/proc/lobby_ui_translate_text(datum/preferences/preferences, text)
 	return text
+
+/datum/modpack/proc/lobby_ui_text_input(datum/preferences/preferences, mob/user, prompt, title, default_value, max_length = MAX_MESSAGE_LEN, multiline = FALSE)
+	return tgui_input_text(user, prompt, title, default_value, max_length, multiline, encode = FALSE)
+
+/datum/modpack/proc/lobby_ui_number_input(datum/preferences/preferences, mob/user, prompt, title, default_value, max_value, min_value)
+	return tgui_input_number(user, prompt, title, default_value, max_value, min_value)
+
+/// Optional post-success notification. Never changes persistence or classic rendering.
+/datum/modpack/proc/lobby_ui_character_persisted(datum/preferences/preferences, action)
+	return

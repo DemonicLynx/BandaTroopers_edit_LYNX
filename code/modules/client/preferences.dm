@@ -398,7 +398,7 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 			dat += "<a href='byond://?_src_=prefs;preference=h_style;task=input'><b>[h_style]</b></a>"
 			dat += " | "
 			dat += "<a href='byond://?_src_=prefs;preference=hair;task=input'>"
-			dat += "<b>Color</b> <span class='square' style='background-color: #[num2hex(r_hair, 2)][num2hex(g_hair, 2)][num2hex(b_hair)];'></span>"
+			dat += "<b>Color</b> <span class='square banda-real-color' style='background-color: #[num2hex(r_hair, 2)][num2hex(g_hair, 2)][num2hex(b_hair)];'></span>" // SS220 DemonicLynx "Lobby UI" - optional terminal renderer inverse-rotates literal color samples.
 			dat += "</a>"
 			dat += "<br>"
 
@@ -407,7 +407,7 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 				dat += "<a href='byond://?_src_=prefs;preference=grad_style;task=input'><b>[grad_style]</b></a>"
 				dat += " | "
 				dat += "<a href='byond://?_src_=prefs;preference=grad;task=input'>"
-				dat += "<b>Color</b> <span class='square' style='background-color: #[num2hex(r_gradient, 2)][num2hex(g_gradient, 2)][num2hex(b_gradient)];'></span>"
+				dat += "<b>Color</b> <span class='square banda-real-color' style='background-color: #[num2hex(r_gradient, 2)][num2hex(g_gradient, 2)][num2hex(b_gradient)];'></span>" // SS220 DemonicLynx "Lobby UI" - optional terminal renderer inverse-rotates literal color samples.
 				dat += "</a>"
 				dat += "<br>"
 
@@ -415,13 +415,13 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 			dat += "<a href='byond://?_src_=prefs;preference=f_style;task=input'><b>[f_style]</b></a>"
 			dat += " | "
 			dat += "<a href='byond://?_src_=prefs;preference=facial;task=input'>"
-			dat += "<b>Color</b> <span class='square' style='background-color: #[num2hex(r_facial, 2)][num2hex(g_facial, 2)][num2hex(b_facial)];'></span>"
+			dat += "<b>Color</b> <span class='square banda-real-color' style='background-color: #[num2hex(r_facial, 2)][num2hex(g_facial, 2)][num2hex(b_facial)];'></span>" // SS220 DemonicLynx "Lobby UI" - optional terminal renderer inverse-rotates literal color samples.
 			dat += "</a>"
 			dat += "<br>"
 
 			dat += "<b>Eye:</b> "
 			dat += "<a href='byond://?_src_=prefs;preference=eyes;task=input'>"
-			dat += "<b>Color</b> <span class='square' style='background-color: #[num2hex(r_eyes, 2)][num2hex(g_eyes, 2)][num2hex(b_eyes)];'></span>"
+			dat += "<b>Color</b> <span class='square banda-real-color' style='background-color: #[num2hex(r_eyes, 2)][num2hex(g_eyes, 2)][num2hex(b_eyes)];'></span>" // SS220 DemonicLynx "Lobby UI" - optional terminal renderer inverse-rotates literal color samples.
 			dat += "</a>"
 			dat += "<br><br>"
 
@@ -597,7 +597,7 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 				dat += "<b>Cape Type:</b> <a href='byond://?_src_=prefs;preference=pred_cape_type;task=input'><b>[capitalize_first_letters(predator_cape_type)]</b></a><br>"
 				dat += "<b>Cape Color:</b> "
 				dat += "<a href='byond://?_src_=prefs;preference=pred_cape_color;task=input'>"
-				dat += "<b>Color</b> <span class='square' style='background-color: [predator_cape_color];'></span>"
+				dat += "<b>Color</b> <span class='square banda-real-color' style='background-color: [predator_cape_color];'></span>" // SS220 DemonicLynx "Lobby UI" - optional terminal renderer inverse-rotates literal color samples.
 				dat += "</a><br><br>"
 				dat += "<b>Background:</b> <a href='byond://?_src_=prefs;preference=cycle_bg'><b>Cycle Background</b></a>"
 				dat += "</div>"
@@ -609,97 +609,101 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 			else
 				dat += "<b>You do not have the whitelist for this role.</b>"
 		if(MENU_SETTINGS)
-			dat += "<div id='column1'>"
-			// SS220 DemonicLynx "Lobby UI" - optional module settings; classic fallback adds nothing.
-			dat += lobby_ui_provider?.lobby_ui_interface_controls(src) || ""
-			dat += "<h2><b><u>Input Settings:</u></b></h2>"
-			dat += "<b>Mode:</b> <a href='byond://?_src_=prefs;preference=hotkeys'><b>[(hotkeys) ? "Hotkeys Mode" : "Send to Chat"]</b></a><br>"
-			dat += "<b>Keybinds:</b> <a href='byond://?_src_=prefs;preference=viewmacros'><b>View Keybinds</b></a><br>"
-			dat += "<br><b>Say Input Style:</b> <a href='byond://?_src_=prefs;preference=inputstyle'><b>[tgui_say ? "Modern (default)" : "Legacy"]</b></a><br>"
-			dat += "<b>Say Input Color:</b> <a href='byond://?_src_=prefs;preference=inputcolor'><b>[tgui_say_light_mode ? "Lightmode" : "Darkmode (default)"]</b></a><br>"
+			// SS220 EDIT - START: optional complete Lobby UI settings renderer; the unchanged upstream block is the fallback.
+			var/custom_interface_controls = lobby_ui_provider?.lobby_ui_interface_controls(src)
+			if(!isnull(custom_interface_controls))
+				dat += custom_interface_controls
+			else
+				dat += "<div id='column1'>"
+				dat += "<h2><b><u>Input Settings:</u></b></h2>"
+				dat += "<b>Mode:</b> <a href='byond://?_src_=prefs;preference=hotkeys'><b>[(hotkeys) ? "Hotkeys Mode" : "Send to Chat"]</b></a><br>"
+				dat += "<b>Keybinds:</b> <a href='byond://?_src_=prefs;preference=viewmacros'><b>View Keybinds</b></a><br>"
+				dat += "<br><b>Say Input Style:</b> <a href='byond://?_src_=prefs;preference=inputstyle'><b>[tgui_say ? "Modern (default)" : "Legacy"]</b></a><br>"
+				dat += "<b>Say Input Color:</b> <a href='byond://?_src_=prefs;preference=inputcolor'><b>[tgui_say_light_mode ? "Lightmode" : "Darkmode (default)"]</b></a><br>"
 
-			dat += "<h2><b><u>UI Customization:</u></b></h2>"
-			dat += "<b>Style:</b> <a href='byond://?_src_=prefs;preference=ui'><b>[UI_style]</b></a><br>"
-			dat += "<b>Color:</b> <a href='byond://?_src_=prefs;preference=UIcolor'><b>[UI_style_color]</b> <table style='display:inline;' bgcolor='[UI_style_color]'><tr><td>__</td></tr></table></a><br>"
-			dat += "<b>Alpha:</b> <a href='byond://?_src_=prefs;preference=UIalpha'><b>[UI_style_alpha]</b></a><br><br>"
-			dat += "<b>Stylesheet:</b> <a href='byond://?_src_=prefs;preference=stylesheet'><b>[stylesheet]</b></a><br>"
-			dat += "<b>Hide Statusbar:</b> <a href='byond://?_src_=prefs;preference=hide_statusbar'><b>[hide_statusbar ? "TRUE" : "FALSE"]</b></a><br>"
-			dat += "<b>Prefer input drop down menus to radial menus, where possible:</b> <a href='byond://?_src_=prefs;preference=no_radials_preference'><b>[no_radials_preference ? "TRUE" : "FALSE"]</b></a><br>"
-			if(!no_radials_preference)
-				dat += "<b>Hide Radial Menu Labels:</b> <a href='byond://?_src_=prefs;preference=no_radial_labels_preference'><b>[no_radial_labels_preference ? "TRUE" : "FALSE"]</b></a><br>"
-			dat += "<b>Custom Cursors:</b> <a href='byond://?_src_=prefs;preference=customcursors'><b>[custom_cursors ? "Enabled" : "Disabled"]</b></a><br>"
+				dat += "<h2><b><u>UI Customization:</u></b></h2>"
+				dat += "<b>Style:</b> <a href='byond://?_src_=prefs;preference=ui'><b>[UI_style]</b></a><br>"
+				dat += "<b>Color:</b> <a href='byond://?_src_=prefs;preference=UIcolor'><b>[UI_style_color]</b> <table class='banda-real-color' style='display:inline;' bgcolor='[UI_style_color]'><tr><td>__</td></tr></table></a><br>" // SS220 DemonicLynx "Lobby UI" - optional terminal renderer inverse-rotates literal color samples.
+				dat += "<b>Alpha:</b> <a href='byond://?_src_=prefs;preference=UIalpha'><b>[UI_style_alpha]</b></a><br><br>"
+				dat += "<b>Stylesheet:</b> <a href='byond://?_src_=prefs;preference=stylesheet'><b>[stylesheet]</b></a><br>"
+				dat += "<b>Hide Statusbar:</b> <a href='byond://?_src_=prefs;preference=hide_statusbar'><b>[hide_statusbar ? "TRUE" : "FALSE"]</b></a><br>"
+				dat += "<b>Prefer input drop down menus to radial menus, where possible:</b> <a href='byond://?_src_=prefs;preference=no_radials_preference'><b>[no_radials_preference ? "TRUE" : "FALSE"]</b></a><br>"
+				if(!no_radials_preference)
+					dat += "<b>Hide Radial Menu Labels:</b> <a href='byond://?_src_=prefs;preference=no_radial_labels_preference'><b>[no_radial_labels_preference ? "TRUE" : "FALSE"]</b></a><br>"
+				dat += "<b>Custom Cursors:</b> <a href='byond://?_src_=prefs;preference=customcursors'><b>[custom_cursors ? "Enabled" : "Disabled"]</b></a><br>"
 
-			dat += "<h2><b><u>Chat Settings:</u></b></h2>"
-			if(CONFIG_GET(flag/ooc_country_flags))
-				dat += "<b>OOC Country Flag:</b> <a href='byond://?_src_=prefs;preference=ooc_flag'><b>[(toggle_prefs & TOGGLE_OOC_FLAG) ? "Enabled" : "Disabled"]</b></a><br>"
-			if(user.client.admin_holder && user.client.admin_holder.rights & R_DEBUG)
-				dat += "<b>View Master Controller Tab:</b> <a href='byond://?_src_=prefs;preference=ViewMC'><b>[View_MC ? "TRUE" : "FALSE"]</b></a>"
-			if(unlock_content)
-				dat += "<b>BYOND Membership Publicity:</b> <a href='byond://?_src_=prefs;preference=publicity'><b>[(toggle_prefs & TOGGLE_MEMBER_PUBLIC) ? "Public" : "Hidden"]</b></a><br>"
-			dat += "<b>Ghost Ears:</b> <a href='byond://?_src_=prefs;preference=ghost_ears'><b>[(toggles_chat & CHAT_GHOSTEARS) ? "All Speech" : "Nearest Creatures"]</b></a><br>"
-			dat += "<b>Ghost Sight:</b> <a href='byond://?_src_=prefs;preference=ghost_sight'><b>[(toggles_chat & CHAT_GHOSTSIGHT) ? "All Emotes" : "Nearest Creatures"]</b></a><br>"
-			dat += "<b>Ghost Radio:</b> <a href='byond://?_src_=prefs;preference=ghost_radio'><b>[(toggles_chat & CHAT_GHOSTRADIO) ? "All Chatter" : "Nearest Speakers"]</b></a><br>"
-			dat += "<b>Ghost Spy Radio:</b> <a href='byond://?_src_=prefs;preference=ghost_spyradio'><b>[(toggles_chat & CHAT_LISTENINGBUG) ? "Hear" : "Silence"] listening devices</b></a><br>"
-			dat += "<b>Ghost Hivemind:</b> <a href='byond://?_src_=prefs;preference=ghost_hivemind'><b>[(toggles_chat & CHAT_GHOSTHIVEMIND) ? "Show Hivemind" : "Hide Hivemind"]</b></a><br>"
-			dat += "<b>Abovehead Chat:</b> <a href='byond://?_src_=prefs;preference=lang_chat_disabled'><b>[lang_chat_disabled ? "Hide" : "Show"]</b></a><br>"
-			dat += "<b>Abovehead Emotes:</b> <a href='byond://?_src_=prefs;preference=langchat_emotes'><b>[(toggles_langchat & LANGCHAT_SEE_EMOTES) ? "Show" : "Hide"]</b></a><br>"
-			dat += "</div>"
+				dat += "<h2><b><u>Chat Settings:</u></b></h2>"
+				if(CONFIG_GET(flag/ooc_country_flags))
+					dat += "<b>OOC Country Flag:</b> <a href='byond://?_src_=prefs;preference=ooc_flag'><b>[(toggle_prefs & TOGGLE_OOC_FLAG) ? "Enabled" : "Disabled"]</b></a><br>"
+				if(user.client.admin_holder && user.client.admin_holder.rights & R_DEBUG)
+					dat += "<b>View Master Controller Tab:</b> <a href='byond://?_src_=prefs;preference=ViewMC'><b>[View_MC ? "TRUE" : "FALSE"]</b></a>"
+				if(unlock_content)
+					dat += "<b>BYOND Membership Publicity:</b> <a href='byond://?_src_=prefs;preference=publicity'><b>[(toggle_prefs & TOGGLE_MEMBER_PUBLIC) ? "Public" : "Hidden"]</b></a><br>"
+				dat += "<b>Ghost Ears:</b> <a href='byond://?_src_=prefs;preference=ghost_ears'><b>[(toggles_chat & CHAT_GHOSTEARS) ? "All Speech" : "Nearest Creatures"]</b></a><br>"
+				dat += "<b>Ghost Sight:</b> <a href='byond://?_src_=prefs;preference=ghost_sight'><b>[(toggles_chat & CHAT_GHOSTSIGHT) ? "All Emotes" : "Nearest Creatures"]</b></a><br>"
+				dat += "<b>Ghost Radio:</b> <a href='byond://?_src_=prefs;preference=ghost_radio'><b>[(toggles_chat & CHAT_GHOSTRADIO) ? "All Chatter" : "Nearest Speakers"]</b></a><br>"
+				dat += "<b>Ghost Spy Radio:</b> <a href='byond://?_src_=prefs;preference=ghost_spyradio'><b>[(toggles_chat & CHAT_LISTENINGBUG) ? "Hear" : "Silence"] listening devices</b></a><br>"
+				dat += "<b>Ghost Hivemind:</b> <a href='byond://?_src_=prefs;preference=ghost_hivemind'><b>[(toggles_chat & CHAT_GHOSTHIVEMIND) ? "Show Hivemind" : "Hide Hivemind"]</b></a><br>"
+				dat += "<b>Abovehead Chat:</b> <a href='byond://?_src_=prefs;preference=lang_chat_disabled'><b>[lang_chat_disabled ? "Hide" : "Show"]</b></a><br>"
+				dat += "<b>Abovehead Emotes:</b> <a href='byond://?_src_=prefs;preference=langchat_emotes'><b>[(toggles_langchat & LANGCHAT_SEE_EMOTES) ? "Show" : "Hide"]</b></a><br>"
+				dat += "</div>"
 
-			dat += "<div id='column2'>"
-			dat += "<h2><b><u>Game Settings:</u></b></h2>"
-			dat += "<b>Ambient Occlusion:</b> <a href='byond://?_src_=prefs;preference=ambientocclusion'><b>[toggle_prefs & TOGGLE_AMBIENT_OCCLUSION ? "Enabled" : "Disabled"]</b></a><br>"
-			dat += "<b>Fit Viewport:</b> <a href='byond://?_src_=prefs;preference=auto_fit_viewport'>[auto_fit_viewport ? "Auto" : "Manual"]</a><br>"
-			dat += "<b>Adaptive Zoom:</b> <a href='byond://?_src_=prefs;preference=adaptive_zoom'>[adaptive_zoom ? "[adaptive_zoom * 2]x" : "Disabled"]</a><br>"
-			dat += "<b>Tooltips:</b> <a href='byond://?_src_=prefs;preference=tooltips'><b>[tooltips ? "Enabled" : "Disabled"]</b></a><br>"
-			dat += "<b>tgui Window Mode:</b> <a href='byond://?_src_=prefs;preference=tgui_fancy'><b>[(tgui_fancy) ? "Fancy (default)" : "Compatible (slower)"]</b></a><br>"
-			dat += "<b>tgui Window Placement:</b> <a href='byond://?_src_=prefs;preference=tgui_lock'><b>[(tgui_lock) ? "Primary monitor" : "Free (default)"]</b></a><br>"
-			dat += "<b>Window Scaling:</b> <a href='byond://?_src_=prefs;preference=window_scale'><b>[window_scale ? "Larger windows (default)" : "Smaller zoom"]</b></a><br>"
-			dat += "<b>Play Admin Sounds:</b> <a href='byond://?_src_=prefs;preference=hear_admin_sounds'><b>[(toggles_sound & SOUND_MIDI) ? "Yes" : "No"]</b></a><br>"
-			dat += "<b>Play Announcement Sounds As Ghost:</b> <a href='byond://?_src_=prefs;preference=hear_observer_announcements'><b>[(toggles_sound & SOUND_OBSERVER_ANNOUNCEMENTS) ? "Yes" : "No"]</b></a><br>"
-			dat += "<b>Play Fax Sounds As Ghost:</b> <a href='byond://?_src_=prefs;preference=hear_faxes'><b>[(toggles_sound & SOUND_FAX_MACHINE) ? "Yes" : "No"]</b></a><br>"
-			dat += "<b>Toggle Meme or Atmospheric Sounds:</b> <a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/toggle_admin_sound_types'>Toggle</a><br>"
-			dat += "<b>Set Eye Blur Type:</b> <a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/set_eye_blur_type'>Set</a><br>"
-			dat += "<b>Set Flash Type:</b> <a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/set_flash_type'>Set</a><br>"
-			dat += "<b>Set Crit Type:</b> <a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/set_crit_type'>Set</a><br>"
-			dat += "<b>Play Lobby Music:</b> <a href='byond://?_src_=prefs;preference=lobby_music'><b>[(toggles_sound & SOUND_LOBBY) ? "Yes" : "No"]</b></a><br>"
-			dat += "<b>Play VOX Announcements:</b> <a href='byond://?_src_=prefs;preference=sound_vox'><b>[(hear_vox) ? "Yes" : "No"]</b></a><br>"
-			dat += "<b>Default Ghost Night Vision Level:</b> <a href='byond://?_src_=prefs;preference=ghost_vision_pref;task=input'><b>[ghost_vision_pref]</b></a><br>"
-			dat += "<b>Button To Activate Xenomorph Abilities:</b> <a href='byond://?_src_=prefs;preference=mouse_button_activation;task=input'><b>[xeno_ability_mouse_pref_to_string(xeno_ability_click_mode)]</b></a><br>"
-			dat += "<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/receive_random_tip'>Read Random Tip of the Round</a><br>"
-			if(CONFIG_GET(flag/allow_Metadata))
-				dat += "<b>OOC Notes:</b> <a href='byond://?_src_=prefs;preference=metadata;task=input'> Edit </a>"
-			dat += "</div>"
+				dat += "<div id='column2'>"
+				dat += "<h2><b><u>Game Settings:</u></b></h2>"
+				dat += "<b>Ambient Occlusion:</b> <a href='byond://?_src_=prefs;preference=ambientocclusion'><b>[toggle_prefs & TOGGLE_AMBIENT_OCCLUSION ? "Enabled" : "Disabled"]</b></a><br>"
+				dat += "<b>Fit Viewport:</b> <a href='byond://?_src_=prefs;preference=auto_fit_viewport'>[auto_fit_viewport ? "Auto" : "Manual"]</a><br>"
+				dat += "<b>Adaptive Zoom:</b> <a href='byond://?_src_=prefs;preference=adaptive_zoom'>[adaptive_zoom ? "[adaptive_zoom * 2]x" : "Disabled"]</a><br>"
+				dat += "<b>Tooltips:</b> <a href='byond://?_src_=prefs;preference=tooltips'><b>[tooltips ? "Enabled" : "Disabled"]</b></a><br>"
+				dat += "<b>tgui Window Mode:</b> <a href='byond://?_src_=prefs;preference=tgui_fancy'><b>[(tgui_fancy) ? "Fancy (default)" : "Compatible (slower)"]</b></a><br>"
+				dat += "<b>tgui Window Placement:</b> <a href='byond://?_src_=prefs;preference=tgui_lock'><b>[(tgui_lock) ? "Primary monitor" : "Free (default)"]</b></a><br>"
+				dat += "<b>Window Scaling:</b> <a href='byond://?_src_=prefs;preference=window_scale'><b>[window_scale ? "Larger windows (default)" : "Smaller zoom"]</b></a><br>"
+				dat += "<b>Play Admin Sounds:</b> <a href='byond://?_src_=prefs;preference=hear_admin_sounds'><b>[(toggles_sound & SOUND_MIDI) ? "Yes" : "No"]</b></a><br>"
+				dat += "<b>Play Announcement Sounds As Ghost:</b> <a href='byond://?_src_=prefs;preference=hear_observer_announcements'><b>[(toggles_sound & SOUND_OBSERVER_ANNOUNCEMENTS) ? "Yes" : "No"]</b></a><br>"
+				dat += "<b>Play Fax Sounds As Ghost:</b> <a href='byond://?_src_=prefs;preference=hear_faxes'><b>[(toggles_sound & SOUND_FAX_MACHINE) ? "Yes" : "No"]</b></a><br>"
+				dat += "<b>Toggle Meme or Atmospheric Sounds:</b> <a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/toggle_admin_sound_types'>Toggle</a><br>"
+				dat += "<b>Set Eye Blur Type:</b> <a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/set_eye_blur_type'>Set</a><br>"
+				dat += "<b>Set Flash Type:</b> <a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/set_flash_type'>Set</a><br>"
+				dat += "<b>Set Crit Type:</b> <a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/set_crit_type'>Set</a><br>"
+				dat += "<b>Play Lobby Music:</b> <a href='byond://?_src_=prefs;preference=lobby_music'><b>[(toggles_sound & SOUND_LOBBY) ? "Yes" : "No"]</b></a><br>"
+				dat += "<b>Play VOX Announcements:</b> <a href='byond://?_src_=prefs;preference=sound_vox'><b>[(hear_vox) ? "Yes" : "No"]</b></a><br>"
+				dat += "<b>Default Ghost Night Vision Level:</b> <a href='byond://?_src_=prefs;preference=ghost_vision_pref;task=input'><b>[ghost_vision_pref]</b></a><br>"
+				dat += "<b>Button To Activate Xenomorph Abilities:</b> <a href='byond://?_src_=prefs;preference=mouse_button_activation;task=input'><b>[xeno_ability_mouse_pref_to_string(xeno_ability_click_mode)]</b></a><br>"
+				dat += "<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/receive_random_tip'>Read Random Tip of the Round</a><br>"
+				if(CONFIG_GET(flag/allow_Metadata))
+					dat += "<b>OOC Notes:</b> <a href='byond://?_src_=prefs;preference=metadata;task=input'> Edit </a>"
+				dat += "</div>"
 
-			dat += "<div id='column3'>"
-			dat += "<h2><b><u>Gameplay Toggles:</u></b></h2>"
-			dat += "<b>Toggle Being Able to Hurt Yourself: \
-					</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_IGNORE_SELF]'><b>[toggle_prefs & TOGGLE_IGNORE_SELF ? "Off" : "On"]</b></a><br>"
-			dat += "<b>Toggle Help Intent Safety: \
-					</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_HELP_INTENT_SAFETY]'><b>[toggle_prefs & TOGGLE_HELP_INTENT_SAFETY ? "On" : "Off"]</b></a><br>"
-			dat += "<b>Toggle Ability Deactivation: \
-					</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_ABILITY_DEACTIVATION_OFF]'><b>[toggle_prefs & TOGGLE_ABILITY_DEACTIVATION_OFF ? "Off" : "On"]</b></a><br>"
-			dat += "<b>Toggle Directional Assist: \
-					</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_DIRECTIONAL_ATTACK]'><b>[toggle_prefs & TOGGLE_DIRECTIONAL_ATTACK ? "On" : "Off"]</b></a><br>"
-			dat += "<b>Toggle Magazine Auto-Ejection: \
-					</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_AUTO_EJECT_MAGAZINE_OFF];flag_undo=[TOGGLE_AUTO_EJECT_MAGAZINE_TO_HAND]'><b>[!(toggle_prefs & TOGGLE_AUTO_EJECT_MAGAZINE_OFF) ? "On" : "Off"]</b></a><br>"
-			dat += "<b>Toggle Magazine Auto-Ejection to Offhand: \
-					</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_AUTO_EJECT_MAGAZINE_TO_HAND];flag_undo=[TOGGLE_AUTO_EJECT_MAGAZINE_OFF]'><b>[toggle_prefs & TOGGLE_AUTO_EJECT_MAGAZINE_TO_HAND ? "On" : "Off"]</b></a><br>"
-			dat += "<b>Toggle Magazine Manual Ejection to Offhand: \
-					</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_EJECT_MAGAZINE_TO_HAND]'><b>[toggle_prefs & TOGGLE_EJECT_MAGAZINE_TO_HAND ? "On" : "Off"]</b></a><br>"
-			dat += "<b>Toggle Automatic Punctuation: \
-					</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_AUTOMATIC_PUNCTUATION]'><b>[toggle_prefs & TOGGLE_AUTOMATIC_PUNCTUATION ? "On" : "Off"]</b></a><br>"
-			dat += "<b>Toggle Combat Click-Drag Override: \
-					</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_COMBAT_CLICKDRAG_OVERRIDE]'><b>[toggle_prefs & TOGGLE_COMBAT_CLICKDRAG_OVERRIDE ? "On" : "Off"]</b></a><br>"
-			dat += "<b>Toggle Combat Point-Blank Override: \
-					</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_COMBAT_POINTBLANK_OVERRIDE]'><b>[toggle_prefs & TOGGLE_COMBAT_POINTBLANK_OVERRIDE ? "On" : "Off"]</b></a><br>"
-			dat += "<b>Toggle Middle-Click Swap Hands: \
-					</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_MIDDLE_MOUSE_SWAP_HANDS]'><b>[toggle_prefs & TOGGLE_MIDDLE_MOUSE_SWAP_HANDS ? "On" : "Off"]</b></a><br>"
-			dat += "<b>Toggle Vendors Vending to Hands: \
-					</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_VEND_ITEM_TO_HAND]'><b>[toggle_prefs & TOGGLE_VEND_ITEM_TO_HAND ? "On" : "Off"]</b></a><br>"
-			dat += "<b>Toggle Semi-Auto Ammo Display Limiter: \
-					</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_AMMO_DISPLAY_TYPE]'><b>[toggle_prefs & TOGGLE_AMMO_DISPLAY_TYPE ? "On" : "Off"]</b></a><br>"
-			dat += "<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/switch_item_animations'>Toggle Item Animations Detail Level</a><br>"
-			dat += "<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/toggle_dualwield'>Toggle Dual Wield Functionality</a><br>"
+				dat += "<div id='column3'>"
+				dat += "<h2><b><u>Gameplay Toggles:</u></b></h2>"
+				dat += "<b>Toggle Being Able to Hurt Yourself: \
+						</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_IGNORE_SELF]'><b>[toggle_prefs & TOGGLE_IGNORE_SELF ? "Off" : "On"]</b></a><br>"
+				dat += "<b>Toggle Help Intent Safety: \
+						</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_HELP_INTENT_SAFETY]'><b>[toggle_prefs & TOGGLE_HELP_INTENT_SAFETY ? "On" : "Off"]</b></a><br>"
+				dat += "<b>Toggle Ability Deactivation: \
+						</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_ABILITY_DEACTIVATION_OFF]'><b>[toggle_prefs & TOGGLE_ABILITY_DEACTIVATION_OFF ? "Off" : "On"]</b></a><br>"
+				dat += "<b>Toggle Directional Assist: \
+						</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_DIRECTIONAL_ATTACK]'><b>[toggle_prefs & TOGGLE_DIRECTIONAL_ATTACK ? "On" : "Off"]</b></a><br>"
+				dat += "<b>Toggle Magazine Auto-Ejection: \
+						</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_AUTO_EJECT_MAGAZINE_OFF];flag_undo=[TOGGLE_AUTO_EJECT_MAGAZINE_TO_HAND]'><b>[!(toggle_prefs & TOGGLE_AUTO_EJECT_MAGAZINE_OFF) ? "On" : "Off"]</b></a><br>"
+				dat += "<b>Toggle Magazine Auto-Ejection to Offhand: \
+						</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_AUTO_EJECT_MAGAZINE_TO_HAND];flag_undo=[TOGGLE_AUTO_EJECT_MAGAZINE_OFF]'><b>[toggle_prefs & TOGGLE_AUTO_EJECT_MAGAZINE_TO_HAND ? "On" : "Off"]</b></a><br>"
+				dat += "<b>Toggle Magazine Manual Ejection to Offhand: \
+						</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_EJECT_MAGAZINE_TO_HAND]'><b>[toggle_prefs & TOGGLE_EJECT_MAGAZINE_TO_HAND ? "On" : "Off"]</b></a><br>"
+				dat += "<b>Toggle Automatic Punctuation: \
+						</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_AUTOMATIC_PUNCTUATION]'><b>[toggle_prefs & TOGGLE_AUTOMATIC_PUNCTUATION ? "On" : "Off"]</b></a><br>"
+				dat += "<b>Toggle Combat Click-Drag Override: \
+						</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_COMBAT_CLICKDRAG_OVERRIDE]'><b>[toggle_prefs & TOGGLE_COMBAT_CLICKDRAG_OVERRIDE ? "On" : "Off"]</b></a><br>"
+				dat += "<b>Toggle Combat Point-Blank Override: \
+						</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_COMBAT_POINTBLANK_OVERRIDE]'><b>[toggle_prefs & TOGGLE_COMBAT_POINTBLANK_OVERRIDE ? "On" : "Off"]</b></a><br>"
+				dat += "<b>Toggle Middle-Click Swap Hands: \
+						</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_MIDDLE_MOUSE_SWAP_HANDS]'><b>[toggle_prefs & TOGGLE_MIDDLE_MOUSE_SWAP_HANDS ? "On" : "Off"]</b></a><br>"
+				dat += "<b>Toggle Vendors Vending to Hands: \
+						</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_VEND_ITEM_TO_HAND]'><b>[toggle_prefs & TOGGLE_VEND_ITEM_TO_HAND ? "On" : "Off"]</b></a><br>"
+				dat += "<b>Toggle Semi-Auto Ammo Display Limiter: \
+						</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_AMMO_DISPLAY_TYPE]'><b>[toggle_prefs & TOGGLE_AMMO_DISPLAY_TYPE ? "On" : "Off"]</b></a><br>"
+				dat += "<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/switch_item_animations'>Toggle Item Animations Detail Level</a><br>"
+				dat += "<a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/toggle_dualwield'>Toggle Dual Wield Functionality</a><br>"
+			// SS220 EDIT - END
 		if(MENU_SPECIAL) //wart
 			dat += "<div id='column1'>"
 			dat += "<h2><b><u>ERT Settings:</u></b></h2>"
@@ -1340,7 +1344,7 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 						to_chat(user, SPAN_NOTICE("You are banned from custom human names."))
 						return
 					// SS220 DemonicLynx "Lobby UI" - neutral translation gateway; English upstream strings are the fallback.
-					var/raw_name = input(user, SSmodpacks.lobby_ui_translate(src, "Choose your character's name:"), SSmodpacks.lobby_ui_translate(src, "Character Preference")) as text|null
+					var/raw_name = SSmodpacks.lobby_ui_text(src, user, "Choose your character's name:", "Character Preference", null, MAX_NAME_LEN) // SS220 DemonicLynx "Lobby UI" - neutral themed input gateway; standard TGUI is the fallback.
 					if (!isnull(raw_name)) // Check to ensure that the user entered text (rather than cancel.)
 						var/new_name = reject_bad_name(raw_name)
 						if(new_name)
@@ -1350,7 +1354,7 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 
 				if("slot_label")
 					// SS220 DemonicLynx "Lobby UI" - neutral translation gateway; English upstream strings are the fallback.
-					var/raw_name = input(user, SSmodpacks.lobby_ui_translate(src, "Choose a short label or identifier for this character slot. This is not an in-character nickname:"), SSmodpacks.lobby_ui_translate(src, "Character Preference")) as text|null
+					var/raw_name = SSmodpacks.lobby_ui_text(src, user, "Choose a short label or identifier for this character slot. This is not an in-character nickname:", "Character Preference", null, MAX_NAME_LEN) // SS220 DemonicLynx "Lobby UI" - neutral themed input gateway; standard TGUI is the fallback.
 					if (raw_name) // Check to ensure that the user entered text (rather than cancel.)
 						var/new_name = reject_bad_name(raw_name)
 						if(new_name)
@@ -1396,14 +1400,14 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 							human.set_selected_ability(null)
 							human.set_selected_ability(ability)
 				if("plat_name")
-					var/raw_name = input(user, "Choose your Platoon's name:", "Character Preference")  as text|null
-					if(length(raw_name) > 16 || !length(raw_name)) // Check to ensure that the user entered text (rather than cancel.)
+					var/raw_name = SSmodpacks.lobby_ui_text(src, user, "Choose your Platoon's name:", "Character Preference", platoon_name, 16) // SS220 DemonicLynx "Lobby UI" - neutral themed input gateway; standard TGUI is the fallback.
+					if(length_char(raw_name) > 16 || !length_char(raw_name)) // Check to ensure that the user entered text (rather than cancel.)
 						to_chat(user, "<font color='red'>Invalid name. Your name should be at least 2 and at most [MAX_NAME_LEN] characters long. It may only contain the characters A-Z, a-z, -, ' and .</font>")
 					else
 						platoon_name = raw_name
 
 				if("squad_name_alpha_pref")
-					var/raw_name = input(user, "Choose your Alpha squad name:", "Character Preference", squad_name_alpha_pref) as text|null
+					var/raw_name = SSmodpacks.lobby_ui_text(src, user, "Choose your Alpha squad name:", "Character Preference", squad_name_alpha_pref, 32) // SS220 DemonicLynx "Lobby UI" - neutral themed input gateway; standard TGUI is the fallback.
 					var/normalized_name_alpha = squad_name_normalize(raw_name, 32) // SS220 EDIT: unified preset validation with Cyrillic support
 					if(!normalized_name_alpha)
 						to_chat(user, SPAN_WARNING("Invalid squad name. Use 1-32 chars: Latin/Cyrillic letters, numbers, spaces, apostrophe, hyphen or dot.")) // SS220 EDIT: explicit validation contract
@@ -1411,7 +1415,7 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 						squad_name_alpha_pref = normalized_name_alpha
 
 				if("squad_name_bravo_pref")
-					var/raw_name = input(user, "Choose your Bravo squad name:", "Character Preference", squad_name_bravo_pref) as text|null
+					var/raw_name = SSmodpacks.lobby_ui_text(src, user, "Choose your Bravo squad name:", "Character Preference", squad_name_bravo_pref, 32) // SS220 DemonicLynx "Lobby UI" - neutral themed input gateway; standard TGUI is the fallback.
 					var/normalized_name_bravo = squad_name_normalize(raw_name, 32) // SS220 EDIT: unified preset validation with Cyrillic support
 					if(!normalized_name_bravo)
 						to_chat(user, SPAN_WARNING("Invalid squad name. Use 1-32 chars: Latin/Cyrillic letters, numbers, spaces, apostrophe, hyphen or dot.")) // SS220 EDIT: explicit validation contract
@@ -1419,7 +1423,7 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 						squad_name_bravo_pref = normalized_name_bravo
 
 				if("squad_name_charlie_pref")
-					var/raw_name = input(user, "Choose your Charlie squad name:", "Character Preference", squad_name_charlie_pref) as text|null
+					var/raw_name = SSmodpacks.lobby_ui_text(src, user, "Choose your Charlie squad name:", "Character Preference", squad_name_charlie_pref, 32) // SS220 DemonicLynx "Lobby UI" - neutral themed input gateway; standard TGUI is the fallback.
 					var/normalized_name_charlie = squad_name_normalize(raw_name, 32) // SS220 EDIT: unified preset validation with Cyrillic support
 					if(!normalized_name_charlie)
 						to_chat(user, SPAN_WARNING("Invalid squad name. Use 1-32 chars: Latin/Cyrillic letters, numbers, spaces, apostrophe, hyphen or dot.")) // SS220 EDIT: explicit validation contract
@@ -1427,7 +1431,7 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 						squad_name_charlie_pref = normalized_name_charlie
 
 				if("squad_name_delta_pref")
-					var/raw_name = input(user, "Choose your Delta squad name:", "Character Preference", squad_name_delta_pref) as text|null
+					var/raw_name = SSmodpacks.lobby_ui_text(src, user, "Choose your Delta squad name:", "Character Preference", squad_name_delta_pref, 32) // SS220 DemonicLynx "Lobby UI" - neutral themed input gateway; standard TGUI is the fallback.
 					var/normalized_name_delta = squad_name_normalize(raw_name, 32) // SS220 EDIT: unified preset validation with Cyrillic support
 					if(!normalized_name_delta)
 						to_chat(user, SPAN_WARNING("Invalid squad name. Use 1-32 chars: Latin/Cyrillic letters, numbers, spaces, apostrophe, hyphen or dot.")) // SS220 EDIT: explicit validation contract
@@ -1435,13 +1439,13 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 						squad_name_delta_pref = normalized_name_delta
 
 				if ("dropship_camo")
-					var/new_camo = tgui_input_list(user, "Choose your platoon's dropship camo:", "Character Preferences", GLOB.dropship_camos)
+					var/new_camo = SSmodpacks.lobby_ui_choice(src, user, "Choose your platoon's dropship camo:", "Character Preferences", GLOB.dropship_camos) // SS220 DemonicLynx "Lobby UI" - neutral localized input gateway; standard TGUI is the fallback.
 
 					if (new_camo)
 						dropship_camo = new_camo
 
 				if("dropship_name")
-					var/raw_name = input(user, "Choose your Platoon's Dropship name:", "Character Preference", dropship_name) as text|null
+					var/raw_name = SSmodpacks.lobby_ui_text(src, user, "Choose your Platoon's Dropship name:", "Character Preference", dropship_name, 10) // SS220 DemonicLynx "Lobby UI" - neutral themed input gateway; standard TGUI is the fallback.
 					var/normalized_dropship_name = squad_name_normalize(raw_name, 10) // SS220 EDIT: unified preset validation with Cyrillic support
 					if(!normalized_dropship_name)
 						to_chat(user, SPAN_WARNING("Invalid dropship name. Use 1-10 chars: Latin/Cyrillic letters, numbers, spaces, apostrophe, hyphen or dot.")) // SS220 EDIT: explicit validation contract
@@ -1692,13 +1696,13 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 
 				if("age")
 					// SS220 DemonicLynx "Lobby UI" - neutral translation gateway; English upstream strings are the fallback.
-					var/new_age = tgui_input_number(user, SSmodpacks.lobby_ui_translate(src, "Choose your character's age:\n([AGE_MIN]-[AGE_MAX])"), SSmodpacks.lobby_ui_translate(src, "Character Preference"), 19, AGE_MAX, AGE_MIN)
+					var/new_age = SSmodpacks.lobby_ui_number(src, user, "Choose your character's age:\n([AGE_MIN]-[AGE_MAX])", "Character Preference", 19, AGE_MAX, AGE_MIN) // SS220 DemonicLynx "Lobby UI" - neutral themed input gateway; standard TGUI is the fallback.
 					if(new_age)
 						age = max(min( floor(text2num(new_age)), AGE_MAX),AGE_MIN)
 
 				if("metadata")
 					// SS220 DemonicLynx "Lobby UI" - neutral translation gateway; English upstream strings are the fallback.
-					var/new_metadata = input(user, SSmodpacks.lobby_ui_translate(src, "Enter any information you'd like others to see, such as Roleplay-preferences:"), SSmodpacks.lobby_ui_translate(src, "Game Preference"), metadata) as message|null
+					var/new_metadata = SSmodpacks.lobby_ui_text(src, user, "Enter any information you'd like others to see, such as Roleplay-preferences:", "Game Preference", metadata, MAX_MESSAGE_LEN, TRUE) // SS220 DemonicLynx "Lobby UI" - neutral themed input gateway; standard TGUI is the fallback.
 					if(new_metadata)
 						metadata = strip_html(new_metadata)
 
@@ -1952,7 +1956,7 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 						return
 					if(choice == "Other")
 						// SS220 DemonicLynx "Lobby UI" - neutral translation gateway; English upstream strings are the fallback.
-						var/raw_choice = input(user, SSmodpacks.lobby_ui_translate(src, "Please enter a religon."), SSmodpacks.lobby_ui_translate(src, "Character Preference")) as text|null
+						var/raw_choice = SSmodpacks.lobby_ui_text(src, user, "Please enter a religon.", "Character Preference", null) // SS220 DemonicLynx "Lobby UI" - neutral themed input gateway; standard TGUI is the fallback.
 						if(raw_choice)
 							religion = strip_html(raw_choice) // This only updates itself in the UI when another change is made, eg. save slot or changing other char settings.
 						return
@@ -2440,6 +2444,9 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 			character.gender = MALE
 
 /datum/preferences/proc/open_load_dialog(mob/user)
+	// SS220 DemonicLynx "Lobby UI" - optional terminal slot renderer; the complete classic dialog below is the fallback.
+	if(SSmodpacks?.lobby_ui_provider?.lobby_ui_show_load_dialog(src, user))
+		return
 	var/dat = "<body onselectstart='return false;'>"
 	dat += "<tt><center>"
 
