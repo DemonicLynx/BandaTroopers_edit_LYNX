@@ -1,22 +1,26 @@
-# PLAN — Persisted terminal-interface selection
+# PLAN
 
 ## MUST
-- Terminal remains the default when no valid saved interface exists.
-- Explicit Terminal or Classic selection is written to the account preferences savefile and restored after reconnect/server restart.
-- The UI refreshes to the selected interface even when the in-memory value already matches the selection.
-- Success is reported only after `save_preferences()` succeeds; failure keeps the previous value and is shown to the player.
+- Start every terminal KeyBinds category collapsed when the window opens.
+- Remove the terminal quick-navigation `ВСЕ/ALL` button highlighted by the user.
+- Keep every individual category quick button; it must still expand and scroll to its target.
+- Keep search-by-key able to reveal a row inside an initially collapsed category.
 
 ## KEEP
-- Existing root savefile key, provider load/save hooks, terminal Settings entry and right-panel Preferences verb.
-- Explicitly saved Classic remains respected; “terminal priority” means default/fallback, not removal of Classic.
-- All lobby/editor presentation and disabled-module fallback behavior.
+- Preserve independent category collapse state after opening.
+- Preserve Classic dropdown, including its canonical `ALL` option.
+- Preserve key capture, search, add, clear, reset, persistence, theme styling, and localization.
+- Preserve the previous non-compiling verification constraint.
 
 ## REJECT
-- A second savefile or client-side-only theme state.
-- Unconditional “saved” messages after failed IO.
-- Forcing Terminal over an explicitly and successfully saved Classic choice.
+- No persisted collapse preference.
+- No removal of the Classic `ALL` filter.
+- No compilation or full build.
 
 ## CHECK
-- Default/missing/invalid/Terminal/Classic savefile round trips.
-- Both selection entrypoints use the checked save helper and refresh the lobby.
-- Static modularity, diff check and standard build.
+- Initial state maps every terminal category to collapsed, terminal quick navigation contains only category buttons, reveal-before-scroll remains present, Classic dropdown still contains `ALL`, tests/static audit/diff/hash verification.
+
+## Forbidden substitutions
+- Do not merely hide the `ВСЕ` button with CSS; remove it from terminal markup.
+- Do not make quick buttons navigate to a still-collapsed category.
+

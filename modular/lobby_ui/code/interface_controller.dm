@@ -94,7 +94,7 @@
 	return "Полная"
 
 /datum/preferences/proc/uses_banda_terminal_decorative_effects()
-	return banda_terminal_effect_intensity != BANDA_TERMINAL_EFFECTS_OFF
+	return banda_terminal_effect_intensity == BANDA_TERMINAL_EFFECTS_FULL
 
 /datum/preferences/proc/set_banda_terminal_interface_color(new_color)
 	var/list/channels = istext(new_color) ? ReadRGB(new_color) : null
@@ -190,23 +190,23 @@
 	var/glow_label = banda_terminal_glow ? "Вкл" : "Выкл"
 	var/category_label = uses_banda_english_interface() ? "Category blocks NEW" : "Блоки категорий NEW"
 	var/category_state = banda_category_blocks ? (uses_banda_english_interface() ? "On" : "Вкл") : (uses_banda_english_interface() ? "Off" : "Выкл")
-	return "<h2><b><u>Личные Настройки Интерфейса:</u></b></h2><b>Подсветка персонажа в личном деле:</b> <a href='byond://?_src_=prefs;preference=banda_lobby_character_highlight'><b>[highlight_label]</b></a><br><b>Интенсивность эффектов:</b> <a href='byond://?_src_=prefs;preference=banda_terminal_effect_intensity'><b>[effect_label]</b></a><br><b>Смена языка:</b> <a href='byond://?_src_=prefs;preference=banda_interface_language'><b>[language_label]</b></a><br><b>Свечение интерфейса:</b> <a href='byond://?_src_=prefs;preference=banda_terminal_glow'><b>[glow_label]</b></a><br><b>[category_label]:</b> <a href='byond://?_src_=prefs;preference=banda_category_blocks'>[category_state]</a><br><b>[uses_banda_english_interface() ? "Fonts" : "Шрифты"]:</b> <a href='byond://?_src_=prefs;preference=banda_terminal_font'>[banda_terminal_font == "default" ? (uses_banda_english_interface() ? "Terminal (default)" : "Терминальный (по умолчанию)") : banda_terminal_font]</a><br><b>[uses_banda_english_interface() ? "Text size" : "Размер текста"]:</b> <a href='byond://?_src_=prefs;preference=banda_terminal_font_size'>[banda_terminal_font_size] px</a><br><b>Смена лобби:</b> <a href='byond://?_src_=prefs;preference=banda_menu_interface'><b>Терминальный</b></a><br><b>Изменение цвета интерфейса:</b> <a href='byond://?_src_=prefs;preference=banda_terminal_interface_color'><b>Color</b> <span class='square banda-real-color' style='background-color: [banda_terminal_interface_color];'></span></a><br><b>Изменение цвета текста интерфейса:</b> <a href='byond://?_src_=prefs;preference=banda_terminal_text_color'><b>Color</b> <span class='square banda-real-color' style='background-color: [text_color_swatch];'></span></a><br><a class='prefs-settings-action' href='byond://?_src_=prefs;preference=banda_terminal_settings_reset'><b>Сброс изменений интерфейса</b></a><br><br>"
+	return "<section class='prefs-settings-section'><h2><b><u>Личные Настройки Интерфейса:</u></b></h2><b>Подсветка персонажа в личном деле:</b> <a href='byond://?_src_=prefs;preference=banda_lobby_character_highlight'><b>[highlight_label]</b></a><br><b>Интенсивность эффектов:</b> <a href='byond://?_src_=prefs;preference=banda_terminal_effect_intensity'><b>[effect_label]</b></a><br><b>Смена языка:</b> <a href='byond://?_src_=prefs;preference=banda_interface_language'><b>[language_label]</b></a><br><b>Свечение интерфейса:</b> <a href='byond://?_src_=prefs;preference=banda_terminal_glow'><b>[glow_label]</b></a><br><b>[category_label]:</b> <a href='byond://?_src_=prefs;preference=banda_category_blocks'>[category_state]</a><br><b>[uses_banda_english_interface() ? "Fonts" : "Шрифты"]:</b> <a href='byond://?_src_=prefs;preference=banda_terminal_font'>[banda_terminal_font == "default" ? (uses_banda_english_interface() ? "Terminal (default)" : "Терминальный (по умолчанию)") : banda_terminal_font]</a><br><b>[uses_banda_english_interface() ? "Text size" : "Размер текста"]:</b> <a href='byond://?_src_=prefs;preference=banda_terminal_font_size'>[banda_terminal_font_size] px</a><br><b>Смена лобби:</b> <a href='byond://?_src_=prefs;preference=banda_menu_interface'><b>Терминальный</b></a><br><b>Изменение цвета интерфейса:</b> <a href='byond://?_src_=prefs;preference=banda_terminal_interface_color'><b>Color</b> <span class='square banda-real-color' style='background-color: [banda_terminal_interface_color];'></span></a><br><b>Изменение цвета текста интерфейса:</b> <a href='byond://?_src_=prefs;preference=banda_terminal_text_color'><b>Color</b> <span class='square banda-real-color' style='background-color: [text_color_swatch];'></span></a><br><a class='prefs-settings-action' href='byond://?_src_=prefs;preference=banda_terminal_settings_reset'><b>Сброс изменений интерфейса</b></a><br><br></section>"
 
 /datum/preferences/proc/get_banda_terminal_settings_controls()
 	var/dat = "<div id='column1' class='prefs-settings-column'>"
 	dat += get_banda_interface_preferences_controls()
-	dat += "<h2><b><u>Input Settings:</u></b></h2>"
+	dat += "<section class='prefs-settings-section'><h2><b><u>Input Settings:</u></b></h2>"
 	dat += "<b>Mode:</b> <a href='byond://?_src_=prefs;preference=hotkeys'><b>[hotkeys ? "Hotkeys Mode" : "Send to Chat"]</b></a><br>"
-	dat += "<b>Keybinds:</b> <a href='byond://?_src_=prefs;preference=viewmacros'><b>View Keybinds</b></a><br>"
-	dat += "<h2><b><u>HUD Settings:</u></b></h2>"
+	dat += "<b>Keybinds:</b> <a href='byond://?_src_=prefs;preference=viewmacros'><b>View Keybinds</b></a><br></section>"
+	dat += "<section class='prefs-settings-section'><h2><b><u>HUD Settings:</u></b></h2>"
 	dat += "<b>Style:</b> <a href='byond://?_src_=prefs;preference=ui'><b>[UI_style]</b></a><br>"
 	dat += "<b>Color:</b> <a href='byond://?_src_=prefs;preference=UIcolor'><b>[UI_style_color]</b> <table class='banda-real-color' style='display:inline;' bgcolor='[UI_style_color]'><tr><td>__</td></tr></table></a><br>"
 	dat += "<b>Alpha:</b> <a href='byond://?_src_=prefs;preference=UIalpha'><b>[UI_style_alpha]</b></a><br>"
-	dat += "<b>Custom Cursors:</b> <a href='byond://?_src_=prefs;preference=customcursors'><b>[custom_cursors ? "Enabled" : "Disabled"]</b></a><br>"
+	dat += "<b>Custom Cursors:</b> <a href='byond://?_src_=prefs;preference=customcursors'><b>[custom_cursors ? "Enabled" : "Disabled"]</b></a><br></section>"
 	dat += "</div>"
 
 	dat += "<div id='column2' class='prefs-settings-column'>"
-	dat += "<h2><b><u>Ghost Settings:</u></b></h2>"
+	dat += "<section class='prefs-settings-section'><h2><b><u>Ghost Settings:</u></b></h2>"
 	dat += "<b>Ghost Ears:</b> <a href='byond://?_src_=prefs;preference=ghost_ears'><b>[(toggles_chat & CHAT_GHOSTEARS) ? "All Speech" : "Nearest Creatures"]</b></a><br>"
 	dat += "<b>Ghost Sight:</b> <a href='byond://?_src_=prefs;preference=ghost_sight'><b>[(toggles_chat & CHAT_GHOSTSIGHT) ? "All Emotes" : "Nearest Creatures"]</b></a><br>"
 	dat += "<b>Ghost Radio:</b> <a href='byond://?_src_=prefs;preference=ghost_radio'><b>[(toggles_chat & CHAT_GHOSTRADIO) ? "All Chatter" : "Nearest Speakers"]</b></a><br>"
@@ -215,23 +215,25 @@
 	dat += "<b>Abovehead Chat:</b> <a href='byond://?_src_=prefs;preference=lang_chat_disabled'><b>[lang_chat_disabled ? "Hide" : "Show"]</b></a><br>"
 	dat += "<b>Abovehead Emotes:</b> <a href='byond://?_src_=prefs;preference=langchat_emotes'><b>[(toggles_langchat & LANGCHAT_SEE_EMOTES) ? "Show" : "Hide"]</b></a><br>"
 	dat += "<b>Play Fax Sounds As Ghost:</b> <a href='byond://?_src_=prefs;preference=hear_faxes'><b>[(toggles_sound & SOUND_FAX_MACHINE) ? "Yes" : "No"]</b></a><br>"
-	dat += "<b>Default Ghost Night Vision Level:</b> <a href='byond://?_src_=prefs;preference=ghost_vision_pref;task=input'><b>[ghost_vision_pref]</b></a><br>"
-	dat += "<h2><b><u>Music and Effects:</u></b></h2>"
+	dat += "<b>Default Ghost Night Vision Level:</b> <a href='byond://?_src_=prefs;preference=ghost_vision_pref;task=input'><b>[ghost_vision_pref]</b></a><br></section>"
+	dat += "<section class='prefs-settings-section'><h2><b><u>Music and Effects:</u></b></h2>"
 	dat += "<b>Play Lobby Music:</b> <a href='byond://?_src_=prefs;preference=lobby_music'><b>[(toggles_sound & SOUND_LOBBY) ? "Yes" : "No"]</b></a><br>"
 	dat += "<b>Play VOX Announcements:</b> <a href='byond://?_src_=prefs;preference=sound_vox'><b>[hear_vox ? "Yes" : "No"]</b></a><br>"
 	dat += "<b>Play Admin Sounds:</b> <a href='byond://?_src_=prefs;preference=hear_admin_sounds'><b>[(toggles_sound & SOUND_MIDI) ? "Yes" : "No"]</b></a><br>"
-	dat += "<b>Toggle Meme or Atmospheric Sounds:</b> <a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/toggle_admin_sound_types'>Toggle</a><br>"
-	dat += "<h2><b><u>Game Window Settings:</u></b></h2>"
+	dat += "<div class='prefs-settings-subgroup-label'>Toggle Meme or Atmospheric Sounds:</div>"
+	dat += "<b class='prefs-settings-suboption'>Atmospheric Sounds:</b> <a href='byond://?_src_=prefs;preference=banda_admin_atmospheric_sounds'><b>[(toggles_sound & SOUND_ADMIN_ATMOSPHERIC) ? "On" : "Off"]</b></a><br>"
+	dat += "<b class='prefs-settings-suboption'>Meme Sounds:</b> <a href='byond://?_src_=prefs;preference=banda_admin_meme_sounds'><b>[(toggles_sound & SOUND_ADMIN_MEME) ? "On" : "Off"]</b></a><br></section>"
+	dat += "<section class='prefs-settings-section'><h2><b><u>Game Window Settings:</u></b></h2>"
 	dat += "<b>Ambient Occlusion:</b> <a href='byond://?_src_=prefs;preference=ambientocclusion'><b>[toggle_prefs & TOGGLE_AMBIENT_OCCLUSION ? "Enabled" : "Disabled"]</b></a><br>"
 	dat += "<b>Fit Viewport:</b> <a href='byond://?_src_=prefs;preference=auto_fit_viewport'>[auto_fit_viewport ? "Auto" : "Manual"]</a><br>"
 	dat += "<b>Adaptive Zoom:</b> <a href='byond://?_src_=prefs;preference=adaptive_zoom'>[adaptive_zoom ? "[adaptive_zoom * 2]x" : "Disabled"]</a><br>"
 	dat += "<b>tgui Window Mode:</b> <a href='byond://?_src_=prefs;preference=tgui_fancy'><b>[tgui_fancy ? "Fancy (default)" : "Compatible (slower)"]</b></a><br>"
 	dat += "<b>tgui Window Placement:</b> <a href='byond://?_src_=prefs;preference=tgui_lock'><b>[tgui_lock ? "Primary monitor" : "Free (default)"]</b></a><br>"
-	dat += "<b>Window Scaling:</b> <a href='byond://?_src_=prefs;preference=window_scale'><b>[window_scale ? "Larger windows (default)" : "Smaller zoom"]</b></a><br>"
+	dat += "<b>Window Scaling:</b> <a href='byond://?_src_=prefs;preference=window_scale'><b>[window_scale ? "Larger windows (default)" : "Smaller zoom"]</b></a><br></section>"
 	dat += "</div>"
 
 	dat += "<div id='column3' class='prefs-settings-column'>"
-	dat += "<h2><b><u>Gameplay Toggles:</u></b></h2>"
+	dat += "<section class='prefs-settings-section'><h2><b><u>Gameplay Toggles:</u></b></h2>"
 	dat += "<b>Toggle Being Able to Hurt Yourself:</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_IGNORE_SELF]'><b>[toggle_prefs & TOGGLE_IGNORE_SELF ? "Off" : "On"]</b></a><br>"
 	dat += "<b>Toggle Help Intent Safety:</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_HELP_INTENT_SAFETY]'><b>[toggle_prefs & TOGGLE_HELP_INTENT_SAFETY ? "On" : "Off"]</b></a><br>"
 	dat += "<b>Toggle Ability Deactivation:</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_ABILITY_DEACTIVATION_OFF]'><b>[toggle_prefs & TOGGLE_ABILITY_DEACTIVATION_OFF ? "Off" : "On"]</b></a><br>"
@@ -247,8 +249,8 @@
 	dat += "<b>Toggle Semi-Auto Ammo Display Limiter:</b> <a href='byond://?_src_=prefs;preference=toggle_prefs;flag=[TOGGLE_AMMO_DISPLAY_TYPE]'><b>[toggle_prefs & TOGGLE_AMMO_DISPLAY_TYPE ? "On" : "Off"]</b></a><br>"
 	dat += "<b>Button To Activate Xenomorph Abilities:</b> <a href='byond://?_src_=prefs;preference=mouse_button_activation;task=input'><b>[xeno_ability_mouse_pref_to_string(xeno_ability_click_mode)]</b></a><br>"
 	dat += "<a class='prefs-settings-action' href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/switch_item_animations'>Toggle Item Animations Detail Level</a><br>"
-	dat += "<a class='prefs-settings-action' href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/toggle_dualwield'>Toggle Dual Wield Functionality</a><br>"
-	dat += "<div class='prefs-settings-collapsible'>"
+	dat += "<a class='prefs-settings-action' href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/toggle_dualwield'>Toggle Dual Wield Functionality</a><br></section>"
+	dat += "<div class='prefs-settings-section prefs-settings-collapsible'>"
 	dat += "<h2><a class='prefs-settings-toggle' href='#' role='button' aria-expanded='false' onclick='return toggleBandaAdditional(this);'><span class='prefs-settings-toggle-marker' aria-hidden='true'>+</span><b><u>Additional:</u></b></a></h2>"
 	dat += "<div class='prefs-settings-collapsible-body' aria-hidden='true'>"
 	dat += "<b>Set Eye Blur Type:</b> <a href='byond://?src=\ref[src];action=proccall;procpath=/client/proc/set_eye_blur_type'>Set</a><br>"
@@ -289,6 +291,13 @@
 /datum/preferences/proc/toggle_banda_category_blocks()
 	banda_category_blocks = !banda_category_blocks
 	save_preferences()
+
+/datum/preferences/proc/toggle_banda_admin_sound_type(sound_flag)
+	if(!(sound_flag in list(SOUND_ADMIN_ATMOSPHERIC, SOUND_ADMIN_MEME)))
+		return FALSE
+	toggles_sound ^= sound_flag
+	save_preferences()
+	return TRUE
 
 /datum/preferences/proc/select_banda_terminal_interface_color(mob/user)
 	var/new_color = input(user, "Выберите цвет терминального интерфейса. Тёмные цвета могут ухудшить читаемость.", "Цвет интерфейса", banda_terminal_interface_color) as color|null

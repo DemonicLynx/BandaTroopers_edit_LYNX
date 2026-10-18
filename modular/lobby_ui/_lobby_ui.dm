@@ -80,6 +80,25 @@
 		return null
 	return preferences.uses_banda_english_interface() ? "Character Description" : "Описание персонажа"
 
+/datum/modpack/lobby_ui/lobby_ui_keybind_presentation(datum/preferences/preferences)
+	if(!preferences?.uses_banda_terminal_interface())
+		return null
+	var/list/presentation = preferences.get_banda_tgui_input_presentation()
+	var/english = preferences.uses_banda_english_interface()
+	presentation["window_title"] = english ? "Keybind Settings" : "Настройка клавиш"
+	presentation["labels"] = list(
+		"settings" = english ? "Settings" : "Настройки",
+		"reset" = english ? "Reset to Default" : "Сбросить настройки",
+		"search" = english ? "Search..." : "Поиск...",
+		"search_by_key" = english ? "Search by key" : "Поиск по клавише",
+		"all" = english ? "ALL" : "ВСЕ",
+		"add" = english ? "Add key" : "Добавить клавишу",
+		"clear" = english ? "Clear" : "Очистить",
+		"expand" = english ? "Expand category" : "Развернуть категорию",
+		"collapse" = english ? "Collapse category" : "Свернуть категорию",
+	)
+	return presentation
+
 /datum/modpack/lobby_ui/lobby_ui_uses_custom_character_editor(datum/preferences/preferences)
 	return preferences?.uses_banda_terminal_interface()
 
@@ -204,6 +223,11 @@
 	if(!preferences.uses_banda_terminal_interface())
 		return FALSE
 	switch(preference)
+		if("banda_admin_atmospheric_sounds", "banda_admin_meme_sounds")
+			var/sound_flag = preference == "banda_admin_atmospheric_sounds" ? SOUND_ADMIN_ATMOSPHERIC : SOUND_ADMIN_MEME
+			preferences.toggle_banda_admin_sound_type(sound_flag)
+			preferences.ShowChoices(user)
+			return TRUE
 		if("banda_terminal_settings_reset")
 			preferences.reset_banda_terminal_settings()
 			preferences.ShowChoices(user)

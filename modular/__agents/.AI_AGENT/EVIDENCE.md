@@ -1,27 +1,24 @@
 # EVIDENCE
 
 ## Discovery
-- `banda_menu_interface` defaults to `terminal`; `load_banda_menu_interface()` normalizes missing/invalid values to Terminal and `save_banda_menu_interface()` writes the root key.
-- Both full preference load/save paths call the optional Lobby UI provider hooks.
-- The terminal Settings action and right-panel verb call `save_preferences()` but ignore its boolean result, then unconditionally announce success.
-- The right-panel verb returns immediately when the selected value already matches memory, so it neither rewrites the savefile nor refreshes a stale lobby surface.
-- `show_selected_lobby()` already selects the renderer exclusively from the loaded preference; no separate lobby-state fix is required.
+- Terminal collapse state currently initializes as an empty object, so every category begins expanded because `!!collapsedCategories[category]` is false.
+- The highlighted terminal `ВСЕ` button is emitted only by `KeybindQuickNavigation`; Classic separately uses `labels.all` inside its dropdown.
+- `jumpToCategory('ALL')` is a terminal-only branch that expands every category and becomes dead code once the button is removed.
+- Individual quick navigation and search-by-key already set `[category]: false` before deferred scrolling, which is compatible with initially collapsed categories.
 
 ## Plan-mapping challenge — PASS
-1. Doubt: forcing Terminal on every load would fix the screenshot. Rejected because it destroys the approved Classic choice. Keep Classic only when explicitly saved.
-2. Doubt: a second dedicated theme file could be more reliable. Rejected because the established account savefile already owns the key and has locking/version semantics.
-3. Doubt: only changing the success message is enough. Rejected because the same-value early return can still leave a stale Classic surface and never rewrite the key.
-4. Doubt: callers can each handle rollback. Rejected to avoid divergence; one checked helper owns apply/save/rollback.
-
-Alternatives rejected: unconditional Terminal override, parallel persistence, and unchecked retries. The existing synchronous save result is the authoritative success signal.
+1. CSS-only hiding would leave dead interaction markup. Rejected; remove JSX and branch.
+2. Setting a global collapsed boolean would prevent independent state. Rejected; initialize the existing per-category map.
+3. Removing the provider's `all` label would alter Classic localization. Rejected; Classic retains it.
+4. Persisting collapse state is outside the request. Rejected.
 
 ## Verification
-- Plan fidelity: Terminal remains the default for missing/invalid data; successfully saved Classic remains valid; both entrypoints use the same checked save/rollback helper; same-value selection is no longer skipped and still refreshes the lobby.
-- `node --test modular/lobby_ui/tools/terminal.test.cjs`: 12/12 passed, including the checked-persistence source contract.
-- Added DM regression coverage for default, missing, invalid, explicit Terminal and explicit Classic savefile round trips; it compiles in the normal DM target.
-- `check_modularity.ps1 -StaticOnly`: passed.
-- `git diff --check` for the six changed module files: passed.
-- `tools/build/build.bat dm tgui --force`: DM 0 errors, 0 warnings; TGUI up to date; 20.718s.
-- Full `check_modularity.ps1`: enabled and disabled-module builds passed; disabled DM compile 0 errors/0 warnings; `modular.dme` restored byte-for-byte; final static audit passed.
-- Deployment: six changed module files synchronized to `C:\BandaTroopers_LYNX` and the PR `replace_files` mirror; PR README synchronized separately; all 13 destination hashes matched staged sources.
-- Not run: live reconnect/server-restart cycle against a real player savefile. Failed IO is now visible and cannot be reported as a successful selection.
+- The `useState` initializer now builds a per-category map with every canonical category set to `true`, so the first terminal render is collapsed without an expanded flash.
+- Removed the terminal `ВСЕ/ALL` button markup and obsolete `category === 'ALL'` branch. Individual quick buttons still write `[category]: false` before deferred scrolling.
+- Search-by-key retains the same reveal-before-scroll path for hidden rows. Classic retains its independent `ALL` dropdown entry and original 360px dimensions.
+- Regression coverage asserts initial collapsed state, absence of the terminal all-button, presence of Classic `ALL`, and the existing reveal path.
+- Post-deploy Node tests: 18/18 passed.
+- Post-deploy static modularity audit: passed.
+- Targeted `git diff --check`: passed.
+- SHA-256 comparison confirmed all three repository files match staging, source checkout, and PR replacement package; PR README also matches.
+- Compilation and the full build were intentionally not run per the user's explicit instruction.

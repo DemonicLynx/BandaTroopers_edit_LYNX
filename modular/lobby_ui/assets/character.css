@@ -37,10 +37,11 @@ a.prefs-tab:hover { border-color: var(--banda-accent-color); background: rgba(va
 a.prefs-tab.active, a.prefs-tab.active:link, a.prefs-tab.active:visited { color: var(--banda-on-accent); background: var(--banda-accent-color); border-color: var(--banda-accent-color); box-shadow: 0 0 11px rgba(var(--banda-accent-rgb), 0.32), inset 0 0 16px rgba(var(--banda-accent-rgb), 0.23); text-shadow: none; }
 .prefs-workspace { flex: 1 1 auto; min-height: 0; display: flex; gap: 12px; }
 .prefs-crt.tab-switching .prefs-workspace { transform-origin: 50% 20%; animation: prefs-tab-glitch .16s steps(2, end) both; }
-.prefs-crt.banda-effects-reduced, .prefs-crt.banda-effects-reduced:after, .prefs-crt.banda-effects-reduced .prefs-crt-speckle, .prefs-crt.banda-effects-reduced.tab-switching .prefs-workspace, .prefs-crt.banda-effects-reduced.terminal-opening .prefs-crt-frame, .prefs-crt.banda-effects-reduced .banda-value-updated { animation: none; }
-.prefs-crt.banda-effects-reduced .prefs-preview-stage { animation-duration: 36s; }
+.prefs-crt.banda-effects-reduced, .prefs-crt.banda-effects-reduced *, .prefs-crt.banda-effects-reduced:before, .prefs-crt.banda-effects-reduced:after, .prefs-crt.banda-effects-reduced *:before, .prefs-crt.banda-effects-reduced *:after { animation: none !important; transition: none !important; }
+.prefs-crt.banda-effects-reduced:after { animation: prefs-crt-roll 9s linear infinite !important; }
+.prefs-crt.banda-effects-reduced .prefs-focus-shade { transition: opacity .14s linear !important; }
 .prefs-crt.banda-effects-off, .prefs-crt.banda-effects-off *, .prefs-crt.banda-effects-off:before, .prefs-crt.banda-effects-off:after, .prefs-crt.banda-effects-off *:before, .prefs-crt.banda-effects-off *:after { animation: none !important; transition: none !important; }
-.prefs-crt.banda-effects-off .prefs-crt-speckle { display: none; }
+.prefs-crt.banda-effects-off:before, .prefs-crt.banda-effects-off:after, .prefs-crt.banda-effects-off .prefs-crt-speckle, .prefs-crt.banda-effects-off .prefs-focus-shade { display: none; }
 .prefs-crt.banda-glow-off *, .prefs-crt.banda-glow-off *:before, .prefs-crt.banda-glow-off *:after { text-shadow: none !important; box-shadow: none !important; }
 .prefs-crt.banda-glow-off .prefs-character-sprite { filter: none !important; }
 .prefs-workspace.full { min-height: 0; overflow: hidden; }
@@ -92,16 +93,20 @@ a.prefs-preview-arrow:focus { outline: 1px solid var(--banda-accent-color); outl
 .prefs-content #column3 { margin-right: 0; }
 .prefs-fields .square { width: 14px; height: 14px; display: inline-block; border: 1px solid var(--banda-accent-color); vertical-align: middle; }
 .prefs-fields .banda-real-color { position: relative; z-index: 45; filter: none; box-shadow: none; }
-.prefs-settings-collapsible { margin-top: 12px; }
+.prefs-settings-section { margin: 0 0 9px; }
+.prefs-settings-section > h2 { grid-column: 1 / -1; margin: 0 0 7px; padding: 6px 8px; border: 1px solid rgba(var(--banda-accent-rgb), 0.32); border-left: 3px solid rgba(var(--banda-accent-rgb), 0.72); background: rgba(0, 0, 0, 0.46); box-shadow: inset 0 0 0 1px rgba(var(--banda-accent-rgb), 0.05); }
+.prefs-settings-subgroup-label { grid-column: 1 / -1; margin-top: 3px; padding: 4px 6px 2px; border-left: 2px solid rgba(var(--banda-accent-rgb), 0.5); color: var(--banda-text-color); font-weight: bold; }
+.prefs-settings-section > b.prefs-settings-suboption { padding-left: 12px; }
 .prefs-fields h2 a.prefs-settings-toggle, .prefs-fields h2 a.prefs-settings-toggle:link, .prefs-fields h2 a.prefs-settings-toggle:visited { display: block; width: 100%; margin: 0; padding: 0; border: 0; background: transparent; text-align: left; }
 .prefs-settings-toggle-marker { display: inline-block; width: 1.4em; color: var(--banda-accent-color); text-align: center; }
-.prefs-settings-collapsible-body { display: none; padding: 2px 7px 8px; }
-.prefs-settings-column, .prefs-settings-collapsible.open .prefs-settings-collapsible-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(54px, 46%); column-gap: 7px; row-gap: 2px; align-content: start; align-items: start; }
-.prefs-settings-column > h2, .prefs-settings-column > .prefs-settings-collapsible { grid-column: 1 / -1; }
-.prefs-settings-column > b, .prefs-settings-collapsible-body > b { grid-column: 1; min-width: 0; padding-top: 2px; white-space: normal; overflow-wrap: break-word; word-wrap: break-word; }
-.prefs-settings-column > a:not(.prefs-settings-action), .prefs-settings-collapsible-body > a { grid-column: 2; min-width: 0; max-width: 100%; justify-self: end; margin: 0; text-align: right; white-space: normal; overflow-wrap: break-word; word-wrap: break-word; }
-.prefs-settings-column > br, .prefs-settings-collapsible-body > br { display: none; }
-.prefs-settings-column > a.prefs-settings-action { grid-column: 1 / -1; justify-self: start; max-width: 100%; margin: 1px 0; white-space: normal; overflow-wrap: break-word; word-wrap: break-word; }
+.prefs-settings-collapsible-body { display: none; grid-column: 1 / -1; padding: 2px 7px 8px; }
+.prefs-settings-column { display: block; }
+.prefs-settings-section, .prefs-settings-collapsible.open .prefs-settings-collapsible-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(54px, 46%); column-gap: 7px; row-gap: 2px; align-content: start; align-items: start; }
+.prefs-settings-section > b, .prefs-settings-collapsible-body > b { grid-column: 1; min-width: 0; padding-top: 2px; white-space: normal; overflow-wrap: break-word; word-wrap: break-word; }
+.prefs-settings-section > a:not(.prefs-settings-action), .prefs-settings-collapsible-body > a { grid-column: 2; min-width: 0; max-width: 100%; justify-self: end; margin: 0; text-align: right; white-space: normal; overflow-wrap: break-word; word-wrap: break-word; }
+.prefs-settings-section > br, .prefs-settings-collapsible-body > br { display: none; }
+.prefs-setting-separator { display: block; grid-column: 1 / -1; width: 100%; height: 0; margin: 3px 0 4px; padding: 0; border: 0; border-top: 1px dashed rgba(var(--banda-accent-rgb), 0.2); pointer-events: none; }
+.prefs-settings-section > a.prefs-settings-action { grid-column: 1 / -1; justify-self: start; max-width: 100%; margin: 1px 0; white-space: normal; overflow-wrap: break-word; word-wrap: break-word; }
 .prefs-content:after { content: ''; display: table; clear: both; }
 a.prefs-back-button, a.prefs-back-button:link, a.prefs-back-button:visited { position: absolute; z-index: 25; right: 35px; bottom: 76px; display: block; min-width: 190px; padding: 11px 18px; border: 1px solid var(--banda-accent-color); border-left: 5px solid var(--banda-accent-color); background: rgba(var(--banda-accent-rgb), 0.214); color: var(--banda-text-color); box-shadow: 0 0 13px rgba(var(--banda-accent-rgb), 0.3), inset 0 0 18px rgba(var(--banda-accent-rgb), 0.1); font-size: 13px; line-height: 18px; letter-spacing: 2px; text-align: center; }
 a.prefs-back-button:hover { background: rgba(var(--banda-accent-rgb), 0.725); color: var(--banda-on-accent); border-color: var(--banda-accent-color); text-shadow: none; }

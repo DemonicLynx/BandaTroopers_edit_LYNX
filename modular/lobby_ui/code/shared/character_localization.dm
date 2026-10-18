@@ -259,6 +259,8 @@
 		"Play Announcement Sounds As Ghost" = "Слышать объявления призраком",
 		"Play Fax Sounds As Ghost" = "Слышать факс призраком",
 		"Toggle Meme or Atmospheric Sounds" = "Настроить мемные и атмосферные звуки",
+		"Atmospheric Sounds" = "Атмосферные звуки",
+		"Meme Sounds" = "Мемные звуки",
 		"Set Eye Blur Type" = "Настроить размытие зрения",
 		"Set Flash Type" = "Настроить эффект вспышки",
 		"Set Crit Type" = "Настроить эффект критического состояния",

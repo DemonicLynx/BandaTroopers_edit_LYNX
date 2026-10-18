@@ -197,10 +197,25 @@
     content.appendChild(grid);
     root.classList.add('prefs-category-mode');
   }
+  function installSettingSeparators(root) {
+    var breaks = root.querySelectorAll('.prefs-settings-section > br, .prefs-settings-collapsible-body > br');
+    for (var i = 0; i < breaks.length; i++) {
+      var lineBreak = breaks[i];
+      var action = lineBreak.previousElementSibling;
+      var label = action && action.previousElementSibling;
+      if (!action || action.tagName !== 'A' || /(?:^|\s)prefs-settings-action(?:\s|$)/.test(action.className || '')) continue;
+      if (!label || label.tagName !== 'B') continue;
+      var separator = document.createElement('span');
+      separator.className = 'prefs-setting-separator';
+      separator.setAttribute('aria-hidden', 'true');
+      lineBreak.parentNode.insertBefore(separator, lineBreak);
+    }
+  }
   function installBlockFocus(root) {
     var workspace = root.querySelector('.prefs-workspace');
     if (!workspace || workspace.getAttribute('data-focus-installed') === '1') return;
-    var blocks = workspace.querySelectorAll(root.classList.contains('prefs-category-mode') ? '.prefs-category-card' : '.prefs-identity, #column1, #column2, #column3');
+    var settingsSections = workspace.querySelectorAll('.prefs-settings-section');
+    var blocks = settingsSections.length ? settingsSections : workspace.querySelectorAll(root.classList.contains('prefs-category-mode') ? '.prefs-category-card' : '.prefs-identity, #column1, #column2, #column3');
     if (blocks.length < 2) return;
     var active = null;
     function clearFocus() {
@@ -210,7 +225,7 @@
     }
     function focusBlock() {
       clearFocus();
-      if (root.classList.contains('banda-glow-off')) return;
+      if (root.classList.contains('banda-glow-off') || root.classList.contains('banda-effects-off')) return;
       active = this;
       active.classList.add('prefs-focus-current');
       workspace.classList.add('prefs-focus-active');
@@ -231,15 +246,13 @@
   }
   function playPortraitStatic(root) {
     var panel = root.querySelector('.prefs-preview-panel');
-    if (!panel || root.className.indexOf('banda-effects-off') !== -1) return;
+    if (!panel || root.className.indexOf('banda-effects-reduced') !== -1 || root.className.indexOf('banda-effects-off') !== -1) return;
     var duration = Math.min(250, Number(panel.getAttribute('data-static-duration')) || 0);
     if (duration <= 0) return;
     var canvas = document.createElement('canvas');
     if (!canvas.getContext) return;
     var context = canvas.getContext('2d');
     if (!context) return;
-    var reduced = root.className.indexOf('banda-effects-reduced') !== -1;
-    if (reduced) duration = Math.min(120, duration);
     canvas.className = 'prefs-preview-static';
     canvas.setAttribute('aria-hidden', 'true');
     canvas.width = Math.max(1, Math.min(900, panel.clientWidth));
@@ -257,7 +270,7 @@
       context.fillStyle = '#070907';
       context.fillRect(0, 0, canvas.width, canvas.height);
       for (var y = 0; y < canvas.height; y += 2) {
-        var shade = Math.floor(13 + Math.random() * (reduced ? 14 : 26));
+        var shade = Math.floor(13 + Math.random() * 26);
         context.fillStyle = 'rgb(' + shade + ',' + shade + ',' + shade + ')';
         for (var segment = 0; segment < 3; segment++) {
           var x = Math.floor(Math.random() * canvas.width);
@@ -266,7 +279,7 @@
         }
       }
       // Stay opaque until removal, so the changed portrait cannot show through.
-      timer = window.setTimeout(draw, Math.min(remaining, reduced ? 60 : 40));
+      timer = window.setTimeout(draw, Math.min(remaining, 40));
     }
     panel.appendChild(canvas);
     window.addEventListener('unload', stop);
@@ -286,13 +299,14 @@
     if (!root) return;
     arrangeHumanEditor(root);
     arrangeCategoryCards(root);
+    installSettingSeparators(root);
     installBlockFocus(root);
     playPortraitStatic(root);
     // End the workspace's temporary stacking context after its tab transition.
     window.setTimeout(function () { root.className = root.className.replace(/\btab-switching\b/g, ''); }, 180);
     window.setTimeout(function () {
     var title = document.querySelector('.prefs-brand-title');
-    if (title && title.getAttribute('data-terminal-decode') === '1' && root.className.indexOf('banda-effects-off') === -1) {
+    if (title && title.getAttribute('data-terminal-decode') === '1' && root.className.indexOf('banda-effects-reduced') === -1 && root.className.indexOf('banda-effects-off') === -1) {
       var finalText = title.innerText;
       var finalHtml = title.innerHTML;
       var alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/';

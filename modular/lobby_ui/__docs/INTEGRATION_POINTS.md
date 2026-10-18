@@ -50,6 +50,8 @@
 | `code/modules/admin/tabs/event_tab.dm` | обновление Setup Event Info | Мгновенное обновление текста миссии | Никакого push-обновления классического меню |
 | `tgui/packages/tgui/interfaces/FlavorTextEditor.tsx` | `custom_presentation` | Применение необязательного описания внешнего вида | Встроенные классические значения |
 | `tgui/packages/tgui/styles/interfaces/FlavorTextEditor.scss` | класс `--custom` | Нейтральный контейнер для необязательной темы | Стандартные стили TGUI |
+| `code/modules/client/tgui_macro.dm` | необязательный `lobby_ui_keybind_presentation()` | Тема и локализованный заголовок окна назначения клавиш | Исходный `Keybind Preference` и стандартные данные |
+| `tgui/packages/tgui/interfaces/KeyBinds.jsx`, `styles/interfaces/TerminalInputPresentation.scss` | `custom_presentation`, класс `.BandaKeybinds` | Компактные терминальные строки, поиск и фильтр | Исходное окно 400x500 и стандартное оформление |
 | `interface/skin.dmf` | `lobbybrowser`, `preferencebrowser`, `preferencewindow`, `mainwindow.split.saved-params` | Нейтральные browser-host поверхности и штатное сохранение ручной ширины | Они скрыты и не меняют классический интерфейс |
 
 ## Повторное внесение после upstream
@@ -512,6 +514,12 @@ TGUI-мост остаётся вне DM-модуля, потому что TypeS
 ### 6. Нейтральные BYOND browser-host элементы
 
 Дополнение 16.10.2026: общий необязательный presentation также переносит `font_family` и `font_size`. `TerminalInputPresentation.ts`/SCSS применяют их только внутри `.BandaTerminalInput`; отсутствие payload оставляет классические окна без изменений. Тип `FlavorTextEditor.custom_presentation` содержит те же необязательные поля. Новый `tgui/packages/tgui/interfaces/LobbyTypography.tsx` — отдельное окно настроек с Dropdown и Slider, открываемое только module-local `/datum/banda_terminal_typography` из `code/shared/typography.dm`. Этот DM-файл включён только в `_lobby_ui.dme`; внешние provider hooks/savefile glue не расширены. Сохранение двух новых ключей идёт через существующий account-wide hook.
+
+Главное терминальное меню использует module-local presentation offset `+3 px`, который добавляется после пользовательского масштаба одновременно к `font-size` и пиксельному `line-height`. `get_banda_terminal_styles("lobby")` передаёт один offset как в `lobby.css`, так и в загружаемый следом `terminal.css`; значение входит в ключ кеша. `/*banda-no-lobby-offset*/` оставляет подпись архива на пользовательском базовом масштабе. Для `.dossier-name` и `.data-row` используется `/*banda-no-lobby-offset-cap14*/`: он также ограничивает локальный масштаб значением настройки 14 px, чтобы 15–20 px не вытесняли нижние строки за footer. Базовые размеры информационной зоны уменьшены на 3 px до 13/17 px для имени и 11/13 px для строк; breakpoint `max-width: 900px` использует 11/14 и 9/11 px. Большой пользовательский текст не добавляет `.dossier-data { overflow-y: auto; }`, поэтому все девять строк остаются одновременно видимыми без вложенной прокрутки. Остальные sheet, TGUI payload, сохранённая настройка и Classic получают offset `0`.
+
+Терминальный Settings-renderer заменяет ссылку на `/client/proc/toggle_admin_sound_types` двумя фиксированными module-owned preferences: `banda_admin_atmospheric_sounds` и `banda_admin_meme_sounds`. Provider сопоставляет их только с `SOUND_ADMIN_ATMOSPHERIC`/`SOUND_ADMIN_MEME`, переключает уже существующий `toggles_sound`, сохраняет preferences и повторно открывает текущий редактор. Raw bit из href не принимается. Upstream proc и Classic UI не меняются.
+
+`uses_banda_terminal_decorative_effects()` возвращает true только для `full`, поэтому серверные intro/typewriter/sound callbacks и портретная помеха не запускаются в `reduced`/`off`. CSS режим `reduced` глобально останавливает анимации и переходы на каждой терминальной поверхности, после чего явно возвращает только корневую scan-полосу и переход `.prefs-focus-shade`. Режим `off` также скрывает CRT-overlay и блокирует установку hover-focus в `terminal.js`. Функциональные строки загрузки/манифеста принудительно остаются видимыми при остановленной анимации.
 
 `interface/skin.dmf:239–249`, внутри основного окна:
 

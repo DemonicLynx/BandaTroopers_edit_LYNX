@@ -168,12 +168,188 @@
   display: none;
 }
 
-.BandaTerminalInput--reduced {
-  animation-duration: 0.08s;
-}
-
+.BandaTerminalInput--reduced,
+.BandaTerminalInput--reduced *,
 .BandaTerminalInput--effectsOff,
 .BandaTerminalInput--effectsOff * {
   animation: none !important;
   transition: none !important;
+}
+
+.BandaTerminalInput--effectsOff::after {
+  display: none;
+}
+
+// SS220 DemonicLynx "Lobby UI" - compact terminal-only keybind editor.
+.BandaTerminalInput.BandaKeybinds {
+  .Window__content {
+    padding: 6px !important;
+  }
+
+  .BandaKeybinds__controls {
+    position: sticky;
+    z-index: 4;
+    top: 0;
+    margin-bottom: 6px;
+    background: #070805 !important;
+
+    .Section__content {
+      padding: 5px !important;
+    }
+  }
+
+  .BandaKeybinds__search {
+    gap: 5px;
+    margin-bottom: 5px;
+
+    .Input {
+      min-height: 26px;
+    }
+
+    .Button {
+      min-width: 30px;
+      min-height: 26px;
+      margin: 0;
+    }
+  }
+
+  .BandaKeybinds__categorySelect,
+  .Dropdown {
+    width: 100% !important;
+  }
+
+  .BandaKeybinds__quickNav {
+    margin-top: 5px;
+    padding: 4px;
+    border: 1px solid var(--banda-accent-color);
+    background: rgba(0, 0, 0, 0.4);
+
+    > .Flex {
+      gap: 3px;
+    }
+
+    .Flex__item {
+      flex: 1 1 auto;
+    }
+
+    .Button {
+      width: 100%;
+      min-height: 24px;
+      margin: 0;
+      padding: 2px 7px;
+      text-align: center;
+      white-space: normal;
+    }
+  }
+
+  .BandaKeybinds__legacySeparator {
+    display: none;
+  }
+
+  .Section {
+    margin-bottom: 6px;
+  }
+
+  .BandaKeybinds__category {
+    scroll-margin-top: 176px;
+  }
+
+  .BandaKeybinds__category--collapsed {
+    .Section__content {
+      display: none;
+    }
+  }
+
+  .BandaKeybinds__collapse {
+    min-width: 29px;
+    min-height: 23px;
+    margin: 0;
+    padding: 1px 7px;
+  }
+
+  .Section__title {
+    min-height: 27px;
+    border-left: 3px solid var(--banda-accent-color) !important;
+    letter-spacing: 0.06em;
+  }
+
+  .Section__content {
+    padding: 3px 5px !important;
+  }
+
+  .BandaKeybinds__row {
+    position: relative;
+    min-height: 31px;
+    padding: 3px 4px;
+    transition: background-color 0.12s linear, box-shadow 0.12s linear;
+
+    &::after {
+      content: '';
+      position: absolute;
+      right: 4px;
+      bottom: 0;
+      left: 4px;
+      height: 1px;
+      background: repeating-linear-gradient(
+        90deg,
+        var(--banda-accent-color) 0 5px,
+        transparent 5px 10px
+      );
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.42);
+      box-shadow: inset 3px 0 0 var(--banda-accent-color);
+    }
+  }
+
+  .BandaKeybinds__name {
+    min-width: 0;
+    padding-right: 8px;
+
+    .Box {
+      overflow-wrap: anywhere;
+      line-height: 1.2 !important;
+    }
+  }
+
+  .BandaKeybinds__bindings {
+    min-width: 92px;
+
+    .Flex {
+      gap: 3px;
+    }
+
+    .Button {
+      margin: 0;
+    }
+  }
+
+  .BandaKeybinds__unbound {
+    opacity: 0.55;
+    padding-left: 6px;
+  }
+
+  .BandaKeybinds__actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 3px;
+    padding-left: 5px;
+  }
+
+  .BandaKeybinds__row .Button {
+    min-height: 24px;
+    margin: 0;
+    padding: 2px 6px;
+    line-height: 1.15 !important;
+  }
+}
+
+.BandaTerminalInput--effectsOff.BandaKeybinds {
+  .BandaKeybinds__row:hover {
+    background: transparent;
+    box-shadow: none;
+  }
 }

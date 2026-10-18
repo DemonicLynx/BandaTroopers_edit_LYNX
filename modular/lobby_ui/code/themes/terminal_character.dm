@@ -17,7 +17,7 @@
 	var/name_size_class = name_length > 46 ? " name-very-long" : (name_length > 34 ? " name-long" : (name_length > 22 ? " name-medium" : ""))
 	var/tab_transition_class = !isnull(banda_last_terminal_menu) && banda_last_terminal_menu != current_menu ? " tab-switching" : ""
 	var/opening_class = banda_character_editor_open ? "" : " terminal-opening"
-	var/decode_title = !banda_character_editor_open && banda_terminal_effect_intensity != "off"
+	var/decode_title = !banda_character_editor_open && uses_banda_terminal_decorative_effects()
 	banda_character_editor_open = TRUE
 	var/highlight_preference = html_encode(banda_pending_highlight_preference || "")
 	banda_pending_highlight_preference = null

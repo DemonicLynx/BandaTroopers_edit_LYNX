@@ -7,13 +7,13 @@ body { overflow-x: hidden; overflow-y: auto; background: #050805; color: var(--b
 @keyframes banda-aux-title-decode { 0% { opacity: .2; letter-spacing: 8px; filter: blur(2px); } 55% { opacity: .85; } 100% { opacity: 1; letter-spacing: 4px; filter: none; } }
 @keyframes banda-aux-reveal { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 .banda-aux-crt { position: relative; min-height: 100vh; padding: 14px; overflow: hidden; background: radial-gradient(ellipse at 50% 30%, rgba(var(--banda-accent-rgb), 0.077), rgba(4, 7, 5, .98) 72%), #050805; animation: banda-aux-flicker 8s infinite; }
-.banda-aux-crt.banda-effects-reduced { animation: none; }
+.banda-aux-crt.banda-effects-reduced, .banda-aux-crt.banda-effects-reduced *, .banda-aux-crt.banda-effects-reduced:before, .banda-aux-crt.banda-effects-reduced:after, .banda-aux-crt.banda-effects-reduced *:before, .banda-aux-crt.banda-effects-reduced *:after { animation: none !important; transition: none !important; }
 .banda-aux-crt.banda-effects-off, .banda-aux-crt.banda-effects-off *, .banda-aux-crt.banda-effects-off:before, .banda-aux-crt.banda-effects-off:after, .banda-aux-crt.banda-effects-off *:before, .banda-aux-crt.banda-effects-off *:after { animation: none !important; transition: none !important; }
+.banda-aux-crt.banda-effects-off:before { display: none; }
 .banda-aux-crt.banda-glow-off *, .banda-aux-crt.banda-glow-off *:before, .banda-aux-crt.banda-glow-off *:after { text-shadow: none !important; box-shadow: none !important; }
 .banda-aux-crt:before { content: ''; position: fixed; z-index: 30; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0, 0, 0, .22) 0, rgba(0, 0, 0, .22) 1px, rgba(var(--banda-accent-rgb), 0.025) 2px, transparent 4px), radial-gradient(ellipse at center, transparent 48%, rgba(0, 0, 0, .62) 100%); animation: banda-aux-grid-drift 20s linear infinite alternate; }
 .banda-aux-frame { position: relative; z-index: 2; min-height: calc(100vh - 28px); padding: 13px; border: 1px solid rgba(0, 0, 0, .6); background: rgba(4, 7, 5, .78); box-shadow: inset 0 0 30px rgba(var(--banda-accent-rgb), 0.06), 0 0 12px rgba(var(--banda-accent-rgb), 0.12); animation: banda-aux-frame-pulse .22s steps(3, end) 1; }
 .banda-aux-crt .banda-aux-content a, .banda-aux-crt .banda-record-card, .banda-aux-crt .banda-trait-row, .banda-aux-crt .banda-record-editor { border-color: var(--banda-accent-color) !important; }
-.banda-aux-crt.banda-effects-reduced .banda-aux-frame, .banda-aux-crt.banda-effects-off .banda-aux-frame { animation: none; }
 .banda-aux-frame:before, .banda-aux-frame:after { content: ''; position: absolute; width: 18px; height: 18px; pointer-events: none; }
 .banda-aux-frame:before { left: 7px; top: 7px; border-left: 2px solid rgba(0, 0, 0, .6); border-top: 2px solid rgba(0, 0, 0, .6); }
 .banda-aux-frame:after { right: 7px; bottom: 7px; border-right: 2px solid rgba(0, 0, 0, .6); border-bottom: 2px solid rgba(0, 0, 0, .6); }

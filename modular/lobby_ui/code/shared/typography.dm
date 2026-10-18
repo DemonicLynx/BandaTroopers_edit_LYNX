@@ -23,27 +23,34 @@
 	var/list/fonts = get_banda_terminal_fonts()
 	return fonts[banda_terminal_font]
 
+/// The main lobby is intentionally more readable than the shared editor baseline.
+/datum/preferences/proc/get_banda_terminal_font_size_offset(sheet)
+	return sheet == "lobby" ? 3 : 0
+
 /// Resolve trusted template declarations once per cached typography variant.
-/datum/preferences/proc/apply_banda_terminal_typography(css)
+/datum/preferences/proc/apply_banda_terminal_typography(css, pixel_offset = 0)
 	var/font = get_banda_terminal_font_family()
+	var/effective_base_size = banda_terminal_font_size + pixel_offset
 	if(font)
 		// Do not rename @font-face registrations to a selected system font.
 		css += "\nhtml body, body a, body input, body textarea, body button, body select, body div, body span, body h1, body h2, body h3, body td, body th {font-family: [font] !important;}"
-	if(banda_terminal_font_size > 14)
-		css += "\n.dossier-data {min-height: 0; overflow-y: auto; justify-content: flex-start;} .brand-title, .menu-title, .menu-subtitle, .dossier-title, .data-label {white-space: normal; overflow-wrap: break-word; word-wrap: break-word;} .dossier-title {text-align: center;} .prefs-slot-tools {flex-wrap: wrap; max-width: 55%;} .prefs-tabs a.prefs-tab {white-space: normal;}"
+	if(effective_base_size > 14)
+		css += "\n.brand-title, .menu-title, .menu-subtitle, .dossier-title, .data-label {white-space: normal; overflow-wrap: break-word; word-wrap: break-word;} .dossier-title {text-align: center;} .prefs-slot-tools {flex-wrap: wrap; max-width: 55%;} .prefs-tabs a.prefs-tab {white-space: normal;}"
 	// Host browser styles also set fonts on tables, links and form controls.
 	// Explicit terminal declarations must win; everything else inherits our base.
-	var/regex/sizes = regex("(font-size|line-height):\\s*([0-9.]+)px(?:\\s*!important)?", "g")
+	var/regex/sizes = regex("(font-size|line-height):\\s*([0-9.]+)px(/\\*banda-no-lobby-offset(?:-cap14)?\\*/)?(?:\\s*!important)?", "g")
 	var/list/parts = list()
 	var/cursor = 1
 	while(sizes.Find(css, cursor))
 		parts += copytext(css, cursor, sizes.index)
-		parts += "[sizes.group[1]]: [round(text2num(sizes.group[2]) * banda_terminal_font_size / 14, 0.1)]px !important"
+		var/declaration_font_size = sizes.group[3] && findtext(sizes.group[3], "-cap14") ? min(banda_terminal_font_size, 14) : banda_terminal_font_size
+		var/declaration_offset = sizes.group[3] ? 0 : pixel_offset
+		parts += "[sizes.group[1]]: [round(text2num(sizes.group[2]) * declaration_font_size / 14 + declaration_offset, 0.1)]px !important"
 		cursor = sizes.index + length(sizes.match)
 	parts += copytext(css, cursor)
 	css = jointext(parts, "")
 	// Low specificity preserves scaled component/heading rules, including pseudo-text.
-	css += "\nhtml body {font-size: [banda_terminal_font_size]px !important; line-height: 1.4 !important;} html body * {font-size: inherit !important; line-height: inherit !important;}"
+	css += "\nhtml body {font-size: [effective_base_size]px !important; line-height: 1.4 !important;} html body * {font-size: inherit !important; line-height: inherit !important;}"
 	return css
 
 /datum/preferences/proc/show_banda_typography_dialog(mob/user, mode)

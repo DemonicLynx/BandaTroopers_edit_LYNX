@@ -99,6 +99,24 @@
 
 	preferences.banda_terminal_interface_color = "#e0bd44"
 	preferences.banda_terminal_text_color = "#eeeeee"
+	var/base_typography = preferences.apply_banda_terminal_typography(".probe { font-size: 10px; line-height: 12px; }")
+	var/lobby_typography = preferences.apply_banda_terminal_typography(".probe { font-size: 10px; line-height: 12px; }", preferences.get_banda_terminal_font_size_offset("lobby"))
+	var/dossier_typography = preferences.apply_banda_terminal_typography(".probe { font-size: 10px/*banda-no-lobby-offset*/; line-height: 12px/*banda-no-lobby-offset*/; }", preferences.get_banda_terminal_font_size_offset("lobby"))
+	TEST_ASSERT(findtext(base_typography, "font-size: 10px !important") && findtext(base_typography, "line-height: 12px !important"), "Non-lobby typography must retain its existing scale")
+	TEST_ASSERT(findtext(lobby_typography, "font-size: 13px !important") && findtext(lobby_typography, "line-height: 15px !important"), "Main lobby typography must add exactly three pixels after scaling")
+	TEST_ASSERT(findtext(dossier_typography, "font-size: 10px !important") && findtext(dossier_typography, "line-height: 12px !important"), "Marked dossier declarations must opt out of only the lobby presentation offset")
+	var/original_font_size = preferences.banda_terminal_font_size
+	preferences.banda_terminal_font_size = 20
+	var/capped_dossier_typography = preferences.apply_banda_terminal_typography(".probe { font-size: 13px/*banda-no-lobby-offset-cap14*/; line-height: 17px/*banda-no-lobby-offset-cap14*/; }", preferences.get_banda_terminal_font_size_offset("lobby"))
+	TEST_ASSERT(findtext(capped_dossier_typography, "font-size: 13px !important") && findtext(capped_dossier_typography, "line-height: 17px !important"), "Dossier information must stay capped at the standard compact size")
+	preferences.banda_terminal_font_size = original_font_size
+	TEST_ASSERT_EQUAL(preferences.get_banda_terminal_font_size_offset("character"), 0, "Character editor typography must not receive the lobby boost")
+	preferences.banda_terminal_effect_intensity = BANDA_TERMINAL_EFFECTS_FULL
+	TEST_ASSERT(preferences.uses_banda_terminal_decorative_effects(), "Full effects must retain decorative server sequences")
+	preferences.banda_terminal_effect_intensity = BANDA_TERMINAL_EFFECTS_REDUCED
+	TEST_ASSERT(!preferences.uses_banda_terminal_decorative_effects(), "Reduced effects must suppress decorative server sequences")
+	preferences.banda_terminal_effect_intensity = BANDA_TERMINAL_EFFECTS_OFF
+	TEST_ASSERT(!preferences.uses_banda_terminal_decorative_effects(), "Off effects must suppress decorative server sequences")
 	for(var/sheet in list("character", "auxiliary", "picker", "loadout", "manifest", "lobby"))
 		var/key = preferences.get_banda_terminal_stylesheet_key(sheet)
 		var/datum/asset_cache_item/asset = SSassets.cache[key]

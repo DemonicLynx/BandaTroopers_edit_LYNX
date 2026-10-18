@@ -1,8 +1,11 @@
 # TODO
 
-- [x] Add one checked interface-selection save helper with rollback on failure.
-- [x] Route both Terminal Settings and right-panel Preferences selection through it.
-- [x] Remove the same-value early return so explicit selection saves and refreshes.
-- [x] Add persistence/default regression coverage.
-- [x] Update module and PR documentation and synchronize mirrors.
-- [x] Run targeted tests, modularity audit, diff check and standard build.
+- [x] Initialize all terminal categories as collapsed.
+- [x] Remove the terminal `ВСЕ/ALL` quick button and its branch.
+- [x] Preserve individual quick reveal and hidden-row search reveal.
+- [x] Update tests and documentation.
+- [x] Deploy and run non-compiling verification.
+
+## Forbidden substitutions
+- Keep Classic `ALL`.
+- Do not compile.

@@ -152,8 +152,8 @@
 								<div class='data-row'><span class='data-label'>ВОЗРАСТ</span><span class='data-separator'>:</span><span class='data-value'>[character_age]</span></div>
 								<div class='data-row'><span class='data-label'>ПОЛ</span><span class='data-separator'>:</span><span class='data-value'>[character_gender]</span></div>
 								<div class='data-row'><span class='data-label'>ВИД</span><span class='data-separator'>:</span><span class='data-value'>[character_species]</span></div>
-								<div class='data-row'><span class='data-label'>ТЕЛОСЛОЖЕНИЕ</span><span class='data-separator'>:</span><span class='data-value'>[character_body_type]</span></div>
 								<div class='data-row'><span class='data-label'>КОМПЛЕКЦИЯ</span><span class='data-separator'>:</span><span class='data-value'>[character_body_size]</span></div>
+								<div class='data-row'><span class='data-label'>ТЕЛОСЛОЖЕНИЕ</span><span class='data-separator'>:</span><span class='data-value'>[character_body_type]</span></div>
 								<div class='data-row'><span class='data-label'>ПРОИСХОЖДЕНИЕ</span><span class='data-separator'>:</span><span class='data-value'>[character_origin]</span></div>
 								<div class='data-row'><span class='data-label'>ОТРЯД</span><span class='data-separator'>:</span><span class='data-value'>[character_squad]</span></div>
 								<div class='data-row'><span class='data-label'>ОТНОШЕНИЕ К WY</span><span class='data-separator'>:</span><span class='data-value'>[character_wy_relation]</span></div>

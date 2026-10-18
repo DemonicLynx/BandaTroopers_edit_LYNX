@@ -131,10 +131,10 @@
 /// Remaining milliseconds, not a one-render flag: apparel handlers render twice.
 /datum/preferences/proc/get_banda_preview_effect_duration()
 	var/signature = get_banda_preview_signature()
-	if(!banda_character_editor_open || banda_terminal_effect_intensity == "off")
+	if(!banda_character_editor_open || !uses_banda_terminal_decorative_effects())
 		banda_preview_effect_until = 0
 	else if(!isnull(banda_last_preview_signature) && banda_last_preview_signature != signature)
-		banda_preview_effect_until = world.time + (banda_terminal_effect_intensity == "reduced" ? 0.12 SECONDS : 0.25 SECONDS)
+		banda_preview_effect_until = world.time + 0.25 SECONDS
 	banda_last_preview_signature = signature
 	return max(0, (banda_preview_effect_until - world.time) * 100)
 

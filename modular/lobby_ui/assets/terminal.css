@@ -10,3 +10,4 @@
   background: rgba(var(--banda-accent-rgb), .09);
 }
 .banda-glow-off > .banda-terminal-tone { display: none; }
+.banda-effects-off > .banda-terminal-tone { display: none; }

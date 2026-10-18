@@ -50,6 +50,9 @@
 /datum/modpack/proc/lobby_ui_flavor_text_window_title(datum/preferences/preferences)
 	return null
 
+/datum/modpack/proc/lobby_ui_keybind_presentation(datum/preferences/preferences)
+	return null
+
 /datum/modpack/proc/lobby_ui_uses_custom_character_editor(datum/preferences/preferences)
 	return FALSE
 

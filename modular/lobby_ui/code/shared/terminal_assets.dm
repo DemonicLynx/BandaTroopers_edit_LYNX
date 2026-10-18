@@ -18,17 +18,21 @@
 /datum/preferences/proc/get_banda_terminal_styles(sheet)
 	var/datum/asset/simple/banda_terminal/assets = get_asset_datum(/datum/asset/simple/banda_terminal)
 	var/list/urls = assets.get_url_mappings()
-	var/key = get_banda_terminal_stylesheet_key(sheet)
-	var/shared_key = get_banda_terminal_stylesheet_key("terminal")
+	var/font_size_offset = get_banda_terminal_font_size_offset(sheet)
+	var/key = get_banda_terminal_stylesheet_key(sheet, font_size_offset)
+	// The shared sheet is loaded second and owns the final root inheritance rule.
+	var/shared_key = get_banda_terminal_stylesheet_key("terminal", font_size_offset)
 	SSassets.transport.send_assets(owner, list(key, shared_key, "banda-terminal.js", "banda-loadout.js"))
 	if(sheet == "lobby")
 		SSassets.transport.send_assets(owner, list("banda-grand-pixel.ttf", "banda-pix-cyrillic.ttf"))
 	return "<link rel='stylesheet' href='[SSassets.transport.get_asset_url(key)]'><link rel='stylesheet' href='[SSassets.transport.get_asset_url(shared_key)]'><script src='[urls["banda-terminal.js"]]'></script>"
 
-/datum/preferences/proc/get_banda_terminal_stylesheet_key(sheet)
+/datum/preferences/proc/get_banda_terminal_stylesheet_key(sheet, font_size_offset = null)
 	var/datum/asset/simple/banda_terminal/assets = get_asset_datum(/datum/asset/simple/banda_terminal)
 	var/static/list/templates = list()
 	var/resource = "banda-[sheet].css"
+	if(isnull(font_size_offset))
+		font_size_offset = get_banda_terminal_font_size_offset(sheet)
 	if(!templates[resource])
 		var/datum/asset_cache_item/template = assets.assets[resource]
 		templates[resource] = file2text(template.resource)
@@ -36,9 +40,9 @@
 	// The immutable result is cached by content, so refreshes never resend/rebuild it.
 	var/list/colors = get_banda_terminal_palette()
 	var/list/font_urls = list("Grand9K_Pixel.ttf" = SSassets.transport.get_asset_url("banda-grand-pixel.ttf"), "Pix_Cyrillic.ttf" = SSassets.transport.get_asset_url("banda-pix-cyrillic.ttf"))
-	var/key = "banda-style-[md5("text-v2|[sheet]|[md5(templates[resource])]|[json_encode(colors)]|[json_encode(font_urls)]|[banda_terminal_font]|[banda_terminal_font_size]")].css"
+	var/key = "banda-style-[md5("text-v4|[sheet]|[md5(templates[resource])]|[json_encode(colors)]|[json_encode(font_urls)]|[banda_terminal_font]|[banda_terminal_font_size]|[font_size_offset]")].css"
 	if(!SSassets.cache[key])
-		var/css = apply_banda_terminal_typography(templates[resource])
+		var/css = apply_banda_terminal_typography(templates[resource], font_size_offset)
 		for(var/token in colors)
 			css = replacetext(css, "var([token])", colors[token])
 		for(var/font in font_urls)
