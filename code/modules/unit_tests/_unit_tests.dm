@@ -95,6 +95,10 @@
 // Unit tests backend
 #include "focus_only_tests.dm"
 #include "unit_test.dm"
+#include "../../../modular/human_ai/tests/package_behaviors.dm" // SS220 EDIT: modular NPC regression coverage
+#include "../../../modular/human_ai/tests/migration_regressions.dm" // SS220 EDIT: migration safety contracts
+#include "../../../modular/human_ai/tests/obstacle_permissions.dm" // SS220 EDIT: shared NPC obstacle policy contracts
+#include "../../../modular/human_ai/tests/settings.dm" // SS220 EDIT: profile validation and alive-only settings
 
 #undef TEST_ASSERT
 #undef TEST_ASSERT_EQUAL

@@ -1792,6 +1792,9 @@ not all weapons use normal magazines etc. load_into_chamber() itself is designed
 		if(skill_accuracy)
 			gun_accuracy_mult += skill_accuracy * HIT_ACCURACY_MULT_TIER_3 // Accuracy mult increase/decrease per level is equal to attaching/removing a red dot sight
 
+	// SS220 EDIT: per-NPC profile affects this projectile, not the shared weapon statistics.
+	if(user)
+		gun_accuracy_mult *= user.human_ai_accuracy_multiplier()
 	projectile_to_fire.accuracy = floor(projectile_to_fire.accuracy * gun_accuracy_mult) // Apply gun accuracy multiplier to projectile accuracy
 	projectile_to_fire.scatter += gun_scatter
 
