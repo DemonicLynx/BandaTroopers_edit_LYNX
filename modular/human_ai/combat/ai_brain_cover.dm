@@ -28,6 +28,8 @@
 
 // SS220 EDIT AI - START: cover destinations must remain real floor positions, not scenery or doors
 /datum/human_ai_brain/proc/is_valid_cover_destination(turf/candidate)
+	if(setting("combat_spacing") && in_combat && candidate && combat_crowding(candidate))
+		return FALSE
 	return quick_order_step_within_boundary(candidate) && human_ai_turf_is_safe(candidate, TRUE, FALSE) // SS220 EDIT: cover must be safe and remain inside a Quick Order boundary
 // SS220 EDIT AI - END
 

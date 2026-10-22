@@ -1855,6 +1855,10 @@ not all weapons use normal magazines etc. load_into_chamber() itself is designed
 			total_scatter_angle -= (user.skills.get_skill_level(SKILL_FIREARMS) + gun_ho_bonus) * SCATTER_AMOUNT_TIER_8
 
 
+	// SS220 EDIT: scale final directional scatter only for Human AI; keep weapon stats unchanged.
+	if(user)
+		total_scatter_angle *= user.human_ai_scatter_multiplier()
+
 	//Not if the gun doesn't scatter at all, or negative scatter.
 	if(total_scatter_angle > 0)
 		fire_angle += rand(-total_scatter_angle, total_scatter_angle)

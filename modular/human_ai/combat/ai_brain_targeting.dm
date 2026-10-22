@@ -96,7 +96,7 @@
 
 	return length(final_targets) ? pick(final_targets) : closest_target
 
-/datum/human_ai_brain/proc/can_target(mob/living/target)
+/datum/human_ai_brain/proc/can_target(mob/living/target, check_fire_lane = TRUE)
 	if(!istype(target))
 		return FALSE
 
@@ -112,7 +112,7 @@
 	if(HAS_TRAIT(target, TRAIT_CLOAKED) && get_dist(tied_human, target) > cloak_visible_range)
 		return FALSE
 
-	if(!path_check(target))
+	if(check_fire_lane && !path_check(target))
 		return FALSE
 
 	return TRUE

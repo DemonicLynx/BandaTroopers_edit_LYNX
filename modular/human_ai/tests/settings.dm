@@ -26,6 +26,11 @@
 	var/datum/human_ai_brain/brain = allocate(/datum/human_ai_brain, owner)
 	service.apply_global(human_ai_settings_preset("hard"), service.revision)
 	var/inherited = brain.setting("reaction") == 0.3 && brain.setting("medicine")
+	var/list/strong_profile = human_ai_settings_preset()
+	strong_profile["health_percent"] = 300
+	service.apply_global(strong_profile, service.revision)
+	var/triple_health = owner.maxHealth == owner.species.total_health * 3 && owner.health == owner.maxHealth
+	service.apply_global(human_ai_settings_preset("hard"), service.revision)
 	owner.stat = DEAD
 	var/dead_revision = brain.settings_revision
 	service.apply_global(human_ai_settings_preset("easy"), service.revision)
@@ -33,7 +38,7 @@
 	var/dead_rejected = !brain.sync_settings(TRUE)
 	owner.stat = CONSCIOUS
 	brain.sync_settings()
-	var/revived = brain.setting("reaction") == 1.2 && !brain.setting("medicine")
+	var/revived = brain.setting("reaction") == 1.2 && !brain.setting("drugs")
 	var/mob/living/carbon/human/new_owner = allocate(/mob/living/carbon/human, run_loc_floor_bottom_left)
 	var/datum/human_ai_brain/new_brain = allocate(/datum/human_ai_brain, new_owner)
 	var/new_inherits = new_brain.setting("reaction") == 1.2
@@ -42,6 +47,7 @@
 	var/escape_available = brain.settings_allow_action(emergency)
 	GLOB.human_ai_settings = original
 	TEST_ASSERT(inherited, "Living NPC did not adopt global profile")
+	TEST_ASSERT(triple_health, "Global health setting did not change the actual health pool")
 	TEST_ASSERT(dead_untouched && dead_rejected, "Dead NPC settings were modified")
 	TEST_ASSERT(revived && new_inherits, "Living lifecycle did not inherit latest settings")
 	TEST_ASSERT(stale_rejected, "Stale editor overwrote current settings")
@@ -56,6 +62,11 @@
 	var/list/old_profile = human_ai_settings_preset()
 	old_profile -= "grenade_chance"
 	old_profile -= "stealth_enabled"
+	old_profile -= "health_percent"
+	old_profile -= "grenade_safety"
+	old_profile -= "throwback_safety"
+	old_profile -= "scatter"
+	old_profile -= "combat_spacing"
 	old_profile["reaction"] = 2
 	var/list/migrated = human_ai_settings_import(old_profile, 1)
 	TEST_ASSERT(migrated && migrated["reaction"] == 2 && migrated["grenade_chance"] == 100 && migrated["stealth_enabled"], "Old saved profile failed migration")
@@ -64,6 +75,40 @@
 	TEST_ASSERT(!human_ai_settings_import(old_profile, 1), "Migration accepted arbitrary partial profile")
 	TEST_ASSERT(!human_ai_settings_valid_value("grenade_chance", -1), "Negative probability accepted")
 	TEST_ASSERT(!human_ai_settings_valid_value("grenade_chance", 101), "Probability over 100 accepted")
+	TEST_ASSERT(human_ai_settings_valid_value("accuracy", 3), "Increased accuracy rejected")
+	TEST_ASSERT(human_ai_settings_valid_value("health_percent", 300), "Triple health rejected")
+	TEST_ASSERT_EQUAL(migrated["health_percent"], 100, "Legacy health default changed")
+	TEST_ASSERT_EQUAL(migrated["scatter"], 1, "Legacy scatter default changed")
+	TEST_ASSERT_EQUAL(migrated["combat_spacing"], FALSE, "Legacy spacing must default off")
+	for(var/level in list("easy", "medium", "hard"))
+		var/list/preset = human_ai_settings_preset(level)
+		TEST_ASSERT_EQUAL(preset["combat_spacing"], FALSE, "Spacing enabled in preset [level]")
+	var/list/legacy_spacing = human_ai_settings_preset()
+	legacy_spacing -= "combat_spacing"
+	var/list/current_spacing = human_ai_settings_import(legacy_spacing, 4)
+	TEST_ASSERT_EQUAL(current_spacing["combat_spacing"], FALSE, "Version4 spacing migration failed")
+	TEST_ASSERT(!human_ai_settings_import(legacy_spacing, 5), "Current profile accepted missing spacing")
+	TEST_ASSERT(human_ai_settings_valid_value("scatter", 0) && human_ai_settings_valid_value("scatter", 3), "Scatter limits rejected")
+	TEST_ASSERT(!human_ai_settings_valid_value("scatter", -0.1) && !human_ai_settings_valid_value("scatter", 3.1), "Invalid scatter accepted")
+	var/list/v3_profile = human_ai_settings_preset()
+	v3_profile -= "scatter"
+	var/list/v4_profile = human_ai_settings_import(v3_profile, 3)
+	TEST_ASSERT_EQUAL(v4_profile["scatter"], 1, "Version3 scatter migration failed")
+	TEST_ASSERT(!human_ai_settings_import(v3_profile, 4), "Current version accepted missing scatter")
+	TEST_ASSERT(migrated["grenade_safety"] && migrated["throwback_safety"], "Legacy safety not preserved")
+
+/datum/unit_test/human_ai_pending_oral_dose/Run()
+	var/mob/living/carbon/human/patient = allocate(/mob/living/carbon/human, run_loc_floor_bottom_left)
+	var/datum/human_ai_brain/brain = allocate(/datum/human_ai_brain, patient)
+	brain.settings_snapshot = human_ai_settings_preset()
+	var/obj/item/reagent_container/hypospray/autoinjector/tricord/injector = allocate(/obj/item/reagent_container/hypospray/autoinjector/tricord)
+	var/datum/reagent/medicine = injector.reagents.reagent_list[1]
+	var/datum/reagents/vessel/pending = allocate(/datum/reagents/vessel, 100)
+	pending.add_reagent(medicine.id, medicine.overdose)
+	pending.human_ai_track_ingestion(patient)
+	TEST_ASSERT(!brain.can_safely_administer_reagents(injector, patient, injector.amount_per_transfer_from_this), "Pending oral dose was invisible to injector safety")
+	qdel(pending)
+	TEST_ASSERT_EQUAL(patient.human_ai_pending_dose(medicine.id), 0, "Deleted vessel leaked a pending dose")
 
 /datum/unit_test/human_ai_global_grenade_and_stealth/Run()
 	var/datum/human_ai_settings_service/original = GLOB.human_ai_settings

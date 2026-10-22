@@ -52,22 +52,21 @@
 			if(path_blocker.density)
 				return FALSE
 	for(var/mob/possible_friendly in range(friendly_throw_check_range, candidate))
-		if(grenade_would_harm_friendly(possible_friendly))
+		if((possible_friendly == tied_human) || (setting("grenade_safety") && grenade_would_harm_friendly(possible_friendly)))
 			return FALSE
 	return TRUE
 
-/// Keeps the landing point on the line toward the hostile and clamps it to launcher range.
+/// Land on or next to the hostile, or wait until a useful shot is possible.
 /datum/human_ai_brain/proc/get_underbarrel_grenade_target(obj/item/attachable/attached_gun/grenade/launcher, turf/hostile_turf)
 	if(!launcher || !hostile_turf)
 		return null
 	if(can_fire_underbarrel_grenade_at(launcher, hostile_turf))
 		return hostile_turf
 	var/turf/best_target
-	for(var/turf/candidate as anything in get_line(tied_human, hostile_turf, include_start_atom = FALSE))
-		if(get_dist(tied_human, candidate) > launcher.max_range)
-			break
+	for(var/turf/candidate as anything in range(1, hostile_turf))
 		if(can_fire_underbarrel_grenade_at(launcher, candidate))
 			best_target = candidate
+			break
 	return best_target
 
 /datum/ai_action/fire_underbarrel_grenade
@@ -145,6 +144,8 @@
 		return FALSE
 	if(!setting("throwback") || !can_throw_back_grenades || QDELETED(grenade) || !grenade.active || grenade.fuse_type != TIMED_FUSE)
 		return FALSE
+	if(get_dist(tied_human, grenade) > 2)
+		return FALSE
 	if((tied_human.l_hand?.flags_item & NODROP) && (tied_human.r_hand?.flags_item & NODROP))
 		return FALSE
 	var/remaining_fuse = grenade.get_remaining_timed_fuse_ticks()
@@ -168,10 +169,12 @@
 		return
 
 	var/current_distance = get_dist(tied_human, grenade)
+	if(current_distance >= 5)
+		return null
 	var/turf/best_turf
 	var/best_score = -INFINITY
-	for(var/turf/candidate as anything in range(HUMAN_AI_LIVE_GRENADE_REACTION_RADIUS, tied_human))
-		if(candidate.z != tied_human.z || is_blocked_turf(candidate))
+	for(var/turf/candidate as anything in range(5, tied_human))
+		if(candidate.z != tied_human.z || !human_ai_turf_is_safe(candidate, TRUE, FALSE))
 			continue
 		if((locate(/obj/item/explosive/mine) in candidate.contents) || (locate(/obj/flamer_fire) in candidate.contents))
 			continue
@@ -179,7 +182,7 @@
 		if(grenade_distance <= current_distance)
 			continue
 		var/travel_distance = get_dist(tied_human, candidate)
-		var/score = grenade_distance * 10 - travel_distance
+		var/score = min(grenade_distance, 5) * 100 - travel_distance
 		if(score <= best_score)
 			continue
 		best_score = score

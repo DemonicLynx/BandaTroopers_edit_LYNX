@@ -34,3 +34,18 @@
 		return 1
 	var/datum/component/human_ai/component = GetComponent(/datum/component/human_ai)
 	return component?.ai_brain ? component.ai_brain.setting("accuracy") : 1
+
+/// Applied to the local firing angle, never to the weapon's shared stats.
+/mob/proc/human_ai_scatter_multiplier()
+	if(client)
+		return 1
+	var/datum/component/human_ai/component = GetComponent(/datum/component/human_ai)
+	return component?.ai_brain ? component.ai_brain.setting("scatter") : 1
+
+/// Keep the species datum untouched: it is not an NPC-specific health profile.
+/mob/living/carbon/human
+	var/human_ai_health_percent = 100
+
+/mob/living/carbon/human/proc/human_ai_health_capacity()
+	var/base_health = species ? species.total_health : 200
+	return base_health * human_ai_health_percent / 100

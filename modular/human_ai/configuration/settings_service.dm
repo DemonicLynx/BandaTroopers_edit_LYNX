@@ -29,7 +29,7 @@ GLOBAL_DATUM_INIT(human_ai_settings, /datum/human_ai_settings_service, new)
 		return FALSE
 	profile = validated
 	revision++
-	for(var/datum/human_ai_brain/brain as anything in GLOB.human_ai_brains)
+	for(var/datum/human_ai_brain/brain as anything in GLOB.human_ai_brains.Copy())
 		if(!brain.has_valid_tied_human() || brain.tied_human.stat == DEAD)
 			continue
 		brain.sync_settings(TRUE)
@@ -38,7 +38,7 @@ GLOBAL_DATUM_INIT(human_ai_settings, /datum/human_ai_settings_service, new)
 /datum/human_ai_settings_service/proc/save_default()
 	ensure_loaded()
 	var/savefile/storage = new("data/human_ai_settings.sav")
-	storage["version"] << 2
+	storage["version"] << 5
 	storage["profile"] << profile
 
 /datum/human_ai_brain
@@ -56,6 +56,11 @@ GLOBAL_DATUM_INIT(human_ai_settings, /datum/human_ai_settings_service, new)
 		return TRUE
 	settings_snapshot = service.profile.Copy()
 	settings_revision = service.revision
+	tied_human.human_ai_health_percent = setting("health_percent")
+	tied_human.maxHealth = tied_human.human_ai_health_capacity()
+	tied_human.updatehealth()
+	if(QDELETED(src) || !has_valid_tied_human() || tied_human.stat == DEAD)
+		return TRUE
 	if(!setting("cover"))
 		end_cover()
 	return TRUE

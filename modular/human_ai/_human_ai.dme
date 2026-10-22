@@ -25,6 +25,7 @@
 #include "equipment\item_pickup.dm"
 #include "combat\keep_distance.dm"
 #include "combat\settings_behavior.dm"
+#include "combat\combat_spacing.dm"
 #include "combat\mg_nest.dm"
 #include "orders\patrol_waypoints.dm"
 #include "orders\quick_approach.dm"

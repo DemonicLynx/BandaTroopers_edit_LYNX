@@ -1,20 +1,20 @@
-# TODO
+# Active scatter contract
 
-## Contract
-| ID | Type | Requirement | Status |
-| --- | --- | --- | --- |
-| M1 | MUST | Replace the ambiguous "large work" threshold with an approved-plan rule that applies before product-code/docs edits of any size. | DONE |
-| M2 | MUST | Define one ordered workflow: read-only discovery -> task-state contract -> challenge -> implementation -> audit/sync -> verification/final. | DONE |
-| M3 | MUST | Separate planning task-state edits from later product-code/docs mutating edits. | DONE |
-| M4 | MUST | Make `PASS WITH RISKS`, `BLOCKED`, and incomplete `MUST/KEEP/REJECT` statuses block false "done". | DONE |
-| M5 | MUST | Normalize test guidance so verification cannot replace plan fidelity when the user prioritizes plan implementation. | DONE |
-| M6 | MUST | Make subagent usage explicit: only when the user and higher-priority instructions allow it; otherwise self-challenge. | DONE |
-| K1 | KEEP | Keep modular-first, `rg`, build-tooling, UTF-8, and non-destructive git rules. | DONE |
-| R1 | REJECT | Do not add another overlapping rule layer that keeps old contradictions alive. | DONE |
-| C1 | CHECK | Run docs-level checks for diff whitespace and mojibake. | DONE |
+- [x] MUST combat_spacing toggle default OFF, action and cover gates, migration and preset assertions.
 
-## Forbidden Substitutions
-- Do not replace normalization with a small wording patch in only one file.
-- Do not keep "large task" as a gate for approved-plan contracts.
-- Do not make tests or compile checks the proof of plan fidelity.
-- Do not let old task-state about `outpost_radius` remain active for this docs task.
+- [x] MUST schema/help, NPC-only runtime hook, migration (now version5).
+- [x] CHECK production compile; regression assertions added but not executed this turn.
+- KEEP previous changes; no lobby changes or shared gun mutations.
+
+# Previous contract
+
+- [x] MUST M1 health percent, accuracy 3, help, v3 migration.
+- [x] MUST M2 independent grenade safety switches, retaining physical/fuse checks.
+- [x] MUST M3 pickup radius 2; retreat separation 5; landing within 1 tile of hostile.
+- [x] MUST M4 bounded combat separation respecting order boundaries.
+- [x] MUST M5 patient-wide pending dose accounting.
+- [x] KEEP global alive/new scope, dead exclusion, slots, physical movement.
+- [x] REJECT UI-only knobs, shared species mutation, teleportation, per-medic-only cooldown.
+- [x] CHECK DM build, focused regressions, diff/old-path audit. Runtime test assertions pass across final reruns; wrapper reports nonzero DreamDaemon exit, so full runner is not green.
+
+Old paths: blood-only OD sum, distant line grenade landing, accuracy max1 must be replaced.

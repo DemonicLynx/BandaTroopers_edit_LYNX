@@ -1,42 +1,31 @@
-# EVIDENCE
+# Discovery and self-challenge
 
-## E-001: Starting state
-- Active task-state previously described `outpost_radius`, not the current instruction-normalization task.
-- Read-only review found contradictions across `AGENTS.md`, `WORKFLOW_RULES.md`, `.AI_AGENT/README.md`, and `POLICIES.md`.
+Verification: tools/build/build.bat dm succeeded, 0 errors/0 warnings. git diff --check clean before documentation update. Regression source assertions added for scatter bounds, migrations and all preset spacing defaults; not executed in this turn. No test binaries generated. Runtime game behavior not interactively verified.
 
-## E-002: Plan mapping challenge
-- Status: PASS WITH RISKS before implementation.
-- Risk: instructions are stable guidance, so duplicated wording can drift again. Mitigation: keep `AGENTS.md` as the entrypoint and put detailed mechanics in `WORKFLOW_RULES.md`.
-- Risk: concise task-state conflicts with contract tables. Mitigation: explicitly allow concise tables and summaries while keeping raw logs outside Markdown.
-- Risk: tests can still be over-prioritized. Mitigation: split `Plan Fidelity` from `Verification` and make incomplete `MUST/KEEP/REJECT` block final "done".
+Spacing read-only challenge: combat_spacing.get_weight is also rechecked on trigger; cover has a separate crowding rejection. Both must be gated to fully disable the feature. No movement/retreat replacement required.
 
-## E-003: Expected old contradictions to remove
-- "Large work" must not be the gate when a user-approved plan exists.
-- Task-state edits must not be confused with product-code/docs implementation edits.
-- `PASS WITH RISKS` must not allow known plan-changing risks.
-- `BLOCKED` must not become permission for fallback.
-- Subagents must not be implied unless explicitly permitted by user and higher-priority instructions.
+Scatter challenge: apply_bullet_scatter is too early (burst penalties added later). simulate_scatter owns final directional angle; hook before random offset avoids weapon mutation and handles bursts. Old path audit: no earlier multiplier added, accuracy independent. Metadata drives panel; imports must migrate both server and personal slots. Prior uncommitted tuning preserved.
 
-## E-004: Implementation result
-- `AGENTS.md` now defines read-only discovery, planning-mutation, and implementation-правки before product/stable-doc edits.
-- `.AI_AGENT/README.md` now allows compact contract/fidelity tables and removes the old "new large task" lifecycle gate.
-- `WORKFLOW_RULES.md` now has one approved-plan order, explicit challenge outcomes, forbidden substitutions, old-path audit, pre-final sync, and separate Plan Fidelity/Verification status.
-- `POLICIES.md` now routes approved plans through task-state contract and challenge instead of generic alternatives, and blocks hotfix/wrapper/fallback substitution.
+PASS WITH RISKS. Health uses species.total_health so maxHealth-only is insufficient; modular hook required. Ingestion waits10 seconds in vessels, unseen by blood-only OD checks; track patient-wide vessels until transfer/Destroy. Per-medic cooldown rejected. Grenade planning and release must use same policies. Separation respects action slots and orders. Bounded candidates, no unbounded list mutation.
 
-## E-005: Verification
-- PASS: `git diff --check`.
-- PASS: `rg` check for removed contradiction phrases. The only hit was the intended `без готового пользовательского плана` wording in `POLICIES.md`.
-- PASS: mojibake scan; the only hits are intentional `Р...` examples in `WORKFLOW_RULES.md` and this evidence note.
+Stale task-state contained stash markers from finished tasks; no Git unmerged product paths. Replaced only four task-state files for current scope. Include chain colonialmarines.dme -> human_ai/_human_ai.dme; schema -> service snapshots -> actions.
 
-## Plan fidelity matrix
-| ID | Type | Requirement | Evidence | Status |
-| --- | --- | --- | --- | --- |
-| M1 | MUST | Approved plans do not depend on "large work" threshold. | `AGENTS.md`, `README.md`, `WORKFLOW_RULES.md`; `rg` check. | DONE |
-| M2 | MUST | One ordered workflow exists. | `WORKFLOW_RULES.md` approved-plan order. | DONE |
-| M3 | MUST | Planning task-state edits are separate from implementation edits. | `AGENTS.md` and `WORKFLOW_RULES.md` planning-mutation wording. | DONE |
-| M4 | MUST | `PASS WITH RISKS`, `BLOCKED`, and incomplete contract items cannot hide false done. | `WORKFLOW_RULES.md`, `POLICIES.md`. | DONE |
-| M5 | MUST | Verification cannot replace plan fidelity. | `AGENTS.md`, `WORKFLOW_RULES.md`, `POLICIES.md`. | DONE |
-| M6 | MUST | Subagents require explicit user/higher-priority permission; otherwise self-challenge. | `AGENTS.md`, `WORKFLOW_RULES.md`. | DONE |
-| K1 | KEEP | Preserve modular-first, `rg`, build, UTF-8, and non-destructive git guidance. | Existing rules retained and clarified. | DONE |
-| R1 | REJECT | Avoid another overlapping layer. | Contradictory thresholds replaced in the affected sections. | DONE |
-| C1 | CHECK | Docs-level checks pass. | `git diff --check`, `rg` scans. | DONE |
+## Fidelity
+M1 DONE: schema health10–300/accuracy0.3–3, dynamic panel/help, version3 migration; service sets per-human percent/maxHealth, updatehealth uses modular capacity hook, injuries retained, dead application excluded.
+M2 DONE: independent grenade_safety/throwback_safety in all launch/return planning and release paths, self distance/fuse/trajectory retained.
+M3 DONE: throwback gate radius2; bounded escape scorer prioritizes distance5 and safe floors; hand/launcher landing restricted to hostile or adjacent tile.
+M4 DONE: combat_spacing action, bounded adjacent steps, crowd penalty, 1s cooldown, order boundaries; cover destinations reject crowding.
+M5 DONE: swallowed vessels tracked patient-wide through transfer/Destroy; dose prediction includes pending and blood amounts. Existing final transfer guards retained.
+KEEP/REJECT DONE: no individual settings, no shared species changes, no forced movement, module panel retained; upstream only health and ingestion hooks.
+
+DM production and CIBUILDING compile0/0, TGUI webpack and tsc pass, diff-check pass. Historical50 lobby errors did not reproduce in this checkout; no lobby changes made. Focused runtime first run: schema/migration/pending-dose pass; two old fixture assumptions failed (5x5 room insufficient for5-tile escape, easy preset incorrectly expected all medicine disabled). Corrected fixture size with restoration and expected drugs=false. Second run four settings/medicine tests passed, grenade test exposed firearm-lane filtering of unsafe throwback. Separated can_target fire-lane flag (default true for all other callers), throwback still validates its physical trajectory. Third run grenade test status0 in data/unit_tests.json; all five selected tests have passing final results across reruns. Wrapper itself exited nonzero8528 after final test, no runtime exception recorded; clean full runner status not claimed. No leftover test DreamDaemon process. Temporary TEST_FOCUS removed, final production rebuild0/0. No in-game visual verification or live dispersion battle test.
+
+| ID | Type | Status | Evidence |
+| --- | --- | --- | --- |
+| M1 | MUST | DONE | schema/service/health hook, lifecycle and migration tests |
+| M2 | MUST | DONE | hand/launcher/throwback policy checks; grenade regression |
+| M3 | MUST | DONE | radius2 gate, five-tile escape scorer, adjacent landing search |
+| M4 | MUST | DONE | combat_spacing.dm and cover destination exclusion |
+| M5 | MUST | DONE | patient-owned pending vessels and passing dose regression |
+| K1/R1 | KEEP/REJECT | DONE | global snapshot guards, modular logic, only two upstream hook surfaces |
+| C1 | CHECK | DONE WITH LIMITATION | builds and assertions pass; runner nonzero exit remains unexplained |

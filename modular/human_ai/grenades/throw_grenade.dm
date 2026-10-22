@@ -155,12 +155,12 @@
 		return FALSE
 
 	for(var/mob/possible_friendly in range(acting_brain.friendly_throw_check_range, target_turf)) // SS220 EDIT: use configurable range from brain
-		if(acting_brain.grenade_would_harm_friendly(possible_friendly))
+		if((possible_friendly == acting_brain.tied_human) || (acting_brain.setting("grenade_safety") && acting_brain.grenade_would_harm_friendly(possible_friendly)))
 			return TRUE
 
 	return FALSE
 
-/// Returns the farthest safe landing turf within range on the line toward the hostile.
+/// Try only the hostile's immediate neighborhood, never waste a grenade on a distant short landing.
 /datum/ai_action/throw_grenade/proc/get_hostile_direction_throw_target(mob/living/carbon/human/tied_human, obj/item/explosive/grenade/grenade, turf/hostile_turf, datum/human_ai_brain/acting_brain)
 	if(!acting_brain)
 		acting_brain = brain
@@ -172,14 +172,15 @@
 		return null
 
 	var/turf/best_target
-	for(var/turf/candidate as anything in get_line(tied_human, hostile_turf, include_start_atom = FALSE))
+	for(var/turf/candidate as anything in range(1, hostile_turf))
 		var/candidate_distance = get_dist(tied_human, candidate)
 		if(candidate_distance > effective_throw_range)
-			break
+			continue
 		if(candidate_distance <= min_safe_throw_distance)
 			continue
 		if(can_throw_to_target(tied_human, grenade, candidate) && !has_friendly_near_throw_target(candidate, acting_brain))
 			best_target = candidate
+			break
 
 	return best_target
 

@@ -13,7 +13,7 @@
 	var/savefile/storage = new(path)
 	var/version
 	storage["version"] >> version
-	if(!(version in list(1, 2)))
+	if(!(version in list(1, 2, 3, 4, 5)))
 		return
 	for(var/index in 1 to 3)
 		var/list/entry
@@ -50,6 +50,6 @@
 
 /datum/human_ai_personal_slots/proc/persist()
 	var/savefile/storage = new(save_path())
-	storage["version"] << 2
+	storage["version"] << 5
 	for(var/index in 1 to 3)
 		storage["slot[index]"] << slots[index]

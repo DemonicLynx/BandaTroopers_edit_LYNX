@@ -1,9 +1,14 @@
 /// Metadata is also the UI contract. Unknown keys and out-of-range values are rejected.
 /proc/human_ai_settings_schema()
 	var/static/list/schema = list(
+		"combat_spacing" = list("label" = "Держать дистанцию между союзниками", "section" = "Бой", "min" = 0, "max" = 1, "default" = 0, "boolean" = TRUE),
+		"health_percent" = list("label" = "Запас здоровья, %", "section" = "Бой", "min" = 10, "max" = 300, "default" = 100, "integer" = TRUE),
+		"grenade_safety" = list("label" = "Безопасный бросок во врага", "section" = "Гранаты", "min" = 0, "max" = 1, "default" = 1, "boolean" = TRUE),
+		"throwback_safety" = list("label" = "Безопасное отбрасывание", "section" = "Гранаты", "min" = 0, "max" = 1, "default" = 1, "boolean" = TRUE),
 		"stealth_enabled" = list("label" = "Стелс для ИИ", "section" = "Бой", "min" = 0, "max" = 1, "default" = 1, "boolean" = TRUE),
 		"reaction" = list("label" = "Реакция, секунд", "section" = "Бой", "min" = 0.2, "max" = 3, "default" = 0.7),
-		"accuracy" = list("label" = "Множитель точности", "section" = "Бой", "min" = 0.3, "max" = 1, "default" = 0.85),
+		"accuracy" = list("label" = "Множитель точности", "section" = "Бой", "min" = 0.3, "max" = 3, "default" = 0.85),
+		"scatter" = list("label" = "Множитель разброса оружия", "section" = "Бой", "min" = 0, "max" = 3, "default" = 1),
 		"burst_limit" = list("label" = "Максимум выстрелов в очереди", "section" = "Бой", "min" = 1, "max" = 12, "default" = 6, "integer" = TRUE),
 		"burst_pause" = list("label" = "Пауза между очередями, секунд", "section" = "Бой", "min" = 0.5, "max" = 5, "default" = 1),
 		"chase_time" = list("label" = "Преследование потерянной цели, секунд", "section" = "Бой", "min" = 0, "max" = 30, "default" = 7),
@@ -13,7 +18,7 @@
 		"retreat_health" = list("label" = "Отступление при здоровье ниже, %", "section" = "Бой", "min" = 0, "max" = 70, "default" = 30, "integer" = TRUE),
 		"grenades" = list("label" = "Ручные гранаты", "section" = "Гранаты", "min" = 0, "max" = 1, "default" = 1, "boolean" = TRUE),
 		"underbarrel" = list("label" = "Подствольный гранатомёт", "section" = "Гранаты", "min" = 0, "max" = 1, "default" = 1, "boolean" = TRUE),
-		"throwback" = list("label" = "Безопасный обратный бросок", "section" = "Гранаты", "min" = 0, "max" = 1, "default" = 0, "boolean" = TRUE),
+		"throwback" = list("label" = "Отбрасывать чужие гранаты", "section" = "Гранаты", "min" = 0, "max" = 1, "default" = 0, "boolean" = TRUE),
 		"fuse_reserve" = list("label" = "Резерв запала, секунд", "section" = "Гранаты", "min" = 2, "max" = 6, "default" = 2),
 		"grenade_chance" = list("label" = "Шанс броска гранаты, %", "section" = "Гранаты", "min" = 0, "max" = 100, "default" = 100, "integer" = TRUE),
 		"medicine" = list("label" = "Разрешить медицину", "section" = "Медицина", "min" = 0, "max" = 1, "default" = 1, "boolean" = TRUE),
@@ -64,7 +69,7 @@
 
 /// Version 1 lacks the two additive controls. Never accept arbitrary partial saves.
 /proc/human_ai_settings_import(list/values, version)
-	if(!islist(values) || !(version in list(1, 2)))
+	if(!islist(values) || !(version in list(1, 2, 3, 4, 5)))
 		return null
 	var/list/migrated = values.Copy()
 	if(version == 1)
@@ -72,10 +77,23 @@
 			migrated["grenade_chance"] = 100
 		if(!("stealth_enabled" in migrated))
 			migrated["stealth_enabled"] = TRUE
+	if(version < 3)
+		for(var/key in list("health_percent", "grenade_safety", "throwback_safety"))
+			if(!(key in migrated))
+				migrated[key] = human_ai_settings_schema()[key]["default"]
+	if(version < 4 && !("scatter" in migrated))
+		migrated["scatter"] = 1
+	if(version < 5 && !("combat_spacing" in migrated))
+		migrated["combat_spacing"] = FALSE
 	return human_ai_settings_validate(migrated)
 
 /proc/human_ai_settings_help(key)
 	var/static/list/descriptions = list(
+		"combat_spacing" = "В бою NPC стараются разойтись с соседними союзными NPC и не выбирать занятые ими укрытия. Выключено по умолчанию на всех сложностях. Не отключает отступление от противника или бегство от гранат. В тесных проходах дистанция не гарантируется.",
+		"scatter" = "Множитель итогового углового разброса выстрела NPC, включая очередь и автоматический огонь: 0 — без отклонения направления, 0.5 — вдвое меньше, 1 — обычный, 3 — втрое больше. Не гарантирует попадание и не меняет точность, урон или собственное рассеивание дробинок. Оружие в руках игрока не изменяется.",
+		"health_percent" = "Запас здоровья относительно обычного: 100% — норма, 300% — втрое больше, 50% — вдвое меньше. Уже полученные повреждения сохраняются; снижение может убить тяжело раненого NPC. Не усиливает отдельные конечности и не защищает от потери органов.",
+		"grenade_safety" = "Включено: не бросать гранату рядом с союзниками. Выключено: допускается урон союзникам возле врага. Дальность, препятствия и минимальная дистанция до самого NPC сохраняются. Также действует на подствольник.",
+		"throwback_safety" = "Включено: проверять союзников возле места падения. Выключено: отбросить гранату даже рядом с союзниками. Подбор только в пределах 2 клеток и при достаточном времени до взрыва; иначе отход до дистанции 5 клеток.",
 		"reaction" = "Минимальная задержка перед стрельбой после обнаружения новой цели. Меньше — NPC открывает огонь быстрее. Фактическая реакция зависит также от такта ИИ и готовности оружия. Единицы: секунды.",
 		"accuracy" = "Множитель точности создаваемого снаряда. 1 сохраняет исходную точность оружия; 0.65 оставляет 65% от неё. Это не вероятность попадания: дистанция, укрытие и оружие продолжают влиять на результат.",
 		"burst_limit" = "Верхний предел выстрелов в автоматической очереди до паузы. Меньше — более короткие очереди. Собственный меньший лимит оружия сохраняется; настройка не превращает одиночный режим в автоматический. Единицы: выстрелы.",

@@ -1,28 +1,9 @@
-# PLAN
+# Active: NPC weapon scatter 2026-10-22
 
-## Active Task
-Normalize repository AI-agent instructions so approved implementation plans cannot be replaced by small fixes, wrappers, or test-only closure.
+Additional active request: MUST configurable combat spacing, default OFF in every preset and legacy saves. KEEP retreat/grenade escape independent. CHECK both spacing action and cover crowding filter; persistence version5.
 
-## Goal
-- Remove contradictions between `AGENTS.md`, `.AI_AGENT/README.md`, `WORKFLOW_RULES.md`, and `POLICIES.md`.
-- Establish one execution order for approved plans: read-only discovery -> task-state contract -> plan-mapping challenge -> product-code/docs edits -> old-path audit -> task-state sync -> verification/final.
-- Preserve the existing repository preferences for `rg`, modular-first development, build tooling, UTF-8 docs, and non-destructive git behavior.
+MUST add global scatter multiplier 0–3, default1, Battle panel/help, saved slots/server migration. KEEP previous tuning changes and player weapon behavior. REJECT shared weapon mutation or accuracy substitution. CHECK final angle after burst/skills, persistence and compile. Scope: directional gun scatter, not intrinsic pellet spread.
 
-## Scope
-- Stable guidance files:
-  - `AGENTS.md`
-  - `modular/__agents/.AI_AGENT/README.md`
-  - `modular/__agents/.AI_AGENT/WORKFLOW_RULES.md`
-  - `modular/__agents/.AI_AGENT/POLICIES.md`
-- Active task-state files:
-  - `modular/__agents/.AI_AGENT/PLAN.md`
-  - `modular/__agents/.AI_AGENT/TODO.md`
-  - `modular/__agents/.AI_AGENT/DECISIONS.md`
-  - `modular/__agents/.AI_AGENT/EVIDENCE.md`
+# Previous completed tuning
 
-## Acceptance Criteria
-- No rule still depends on "large task" when the user has given or approved a concrete plan.
-- Task-state edits are clearly separated from product-code/docs edits.
-- `PASS WITH RISKS`, `BLOCKED`, and test status cannot hide incomplete `MUST/KEEP/REJECT` items.
-- Subagents are only used when explicitly allowed by the user and current higher-priority instructions.
-- Docs stay concise UTF-8 Markdown with no mojibake.
+Implement health 10–300%, accuracy up to 3, independent offensive/throwback safety switches, throwback within 2 tiles with sufficient fuse, escape to 5 tiles, landing near hostile, combat separation, pending-ingestion overdose prevention. Module owns logic; minimal health/ingestion hooks upstream. Preserve global alive/new scope, dead snapshots, slots and physics. No lobby changes.

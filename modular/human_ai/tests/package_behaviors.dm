@@ -805,6 +805,24 @@
 
 // SS220 EDIT - START: live-grenade reaction and one-roll combat grenade behavior
 /datum/unit_test/human_ai_grenade_reactions
+	var/list/original_turf_types
+
+/datum/unit_test/human_ai_grenade_reactions/New()
+	. = ..()
+	original_turf_types = list()
+	// The default room is only 5x5; this test needs real floor for five-tile escape and ranged throws.
+	for(var/x_offset in 0 to 10)
+		for(var/y_offset in 0 to 10)
+			var/turf/tile = locate(run_loc_floor_bottom_left.x + x_offset, run_loc_floor_bottom_left.y + y_offset, run_loc_floor_bottom_left.z)
+			if(tile)
+				original_turf_types[tile] = tile.type
+				tile.ChangeTurf(/turf/open/floor)
+
+/datum/unit_test/human_ai_grenade_reactions/Destroy()
+	for(var/turf/tile as anything in original_turf_types)
+		tile.ChangeTurf(original_turf_types[tile])
+	original_turf_types = null
+	return ..()
 
 /datum/unit_test/human_ai_grenade_reactions/Run()
 	var/turf/ai_turf = run_loc_floor_bottom_left
@@ -838,6 +856,8 @@
 	TEST_ASSERT(reaction_action.get_weight(brain) > 0, "Human AI without throw-back capability did not schedule a retreat reaction.")
 	brain.can_throw_back_grenades = TRUE
 	brain.settings_snapshot["throwback"] = TRUE // Test fixture, not a production override API.
+	TEST_ASSERT(!brain.can_attempt_live_grenade_throwback(live_grenade), "NPC approached a grenade outside the two-tile pickup radius")
+	live_grenade.forceMove(get_step(get_step(ai_turf, EAST), EAST))
 	TEST_ASSERT(brain.can_attempt_live_grenade_throwback(live_grenade), "Capable Human AI rejected a timed live grenade.")
 
 	var/turf/hostile_turf = ai_turf
@@ -852,6 +872,9 @@
 	var/mob/living/carbon/human/friendly = allocate(/mob/living/carbon/human, friendly_turf)
 	friendly.faction = FACTION_UNSC
 	TEST_ASSERT_NULL(reaction_action.get_hostile_throw_target(ai_human, live_grenade), "Human AI selected a grenade target whose blast area contained a friendly.")
+	brain.settings_snapshot["throwback_safety"] = FALSE
+	TEST_ASSERT_EQUAL(reaction_action.get_hostile_throw_target(ai_human, live_grenade), hostile_turf, "Unsafe throwback still rejected an ally near the enemy")
+	brain.settings_snapshot["throwback_safety"] = TRUE
 
 	var/obj/item/explosive/grenade/high_explosive/carried_grenade = allocate(/obj/item/explosive/grenade/high_explosive, ai_human)
 	brain.equipment_map[HUMAN_AI_GRENADES][carried_grenade] = ai_human
@@ -866,6 +889,8 @@
 	TEST_ASSERT(brain.should_attempt_combat_grenade(), "Human AI rerolled its stored combat-grenade decision during the same encounter.")
 	var/datum/ai_action/throw_grenade/grenade_action_prototype = GLOB.AI_actions[/datum/ai_action/throw_grenade]
 	TEST_ASSERT_NOTNULL(grenade_action_prototype, "Human AI carried-grenade action was not registered.")
+	TEST_ASSERT_EQUAL(grenade_action_prototype.get_weight(brain), 0, "Safe carried throw ignored allied blast proximity")
+	brain.settings_snapshot["grenade_safety"] = FALSE
 	TEST_ASSERT_EQUAL(grenade_action_prototype.get_weight(brain), 100, "Human AI successful combat-grenade decision did not prioritize the throw action.")
 	brain.settings_snapshot["grenade_chance"] = 100
 	var/datum/ai_action/throw_grenade/carried_action = allocate(/datum/ai_action/throw_grenade, brain)
@@ -878,6 +903,7 @@
 
 	// carried grenades stay aligned with the hostile and pass over intervening allies.
 	qdel(friendly)
+	brain.settings_snapshot["grenade_safety"] = TRUE
 	var/mob/living/carbon/human/intervening_friendly = allocate(/mob/living/carbon/human, get_step(ai_turf, NORTH))
 	intervening_friendly.faction = FACTION_UNSC
 	TEST_ASSERT_EQUAL(carried_action.resolve_throw_target(ai_human, carried_grenade, hostile_turf), hostile_turf, "Human AI rejected a safe hostile grenade target because an ally stood in the flight path.")
@@ -887,10 +913,7 @@
 		distant_hostile_turf = get_step(distant_hostile_turf, NORTH)
 	TEST_ASSERT_NOTNULL(distant_hostile_turf, "Human AI grenade test area must extend beyond normal grenade range.")
 	var/turf/clamped_throw_turf = carried_action.resolve_throw_target(ai_human, carried_grenade, distant_hostile_turf)
-	TEST_ASSERT_NOTNULL(clamped_throw_turf, "Human AI failed to choose a ranged landing turf toward a distant hostile.")
-	TEST_ASSERT_EQUAL(get_dist(ai_human, clamped_throw_turf), carried_grenade.throw_range, "Human AI did not use the available grenade range toward a distant hostile.")
-	TEST_ASSERT_EQUAL(get_dir(ai_human, clamped_throw_turf), get_dir(ai_human, distant_hostile_turf), "Human AI grenade fallback was not aligned with the hostile.")
-	TEST_ASSERT(!carried_action.has_friendly_near_throw_target(clamped_throw_turf), "Human AI selected a clamped grenade landing turf inside the friendly safety radius.")
+	TEST_ASSERT(!clamped_throw_turf || get_dist(clamped_throw_turf, distant_hostile_turf) <= 1, "NPC wasted a grenade far from its hostile target")
 
 	var/turf/blocker_turf = ai_turf
 	for(var/i in 1 to 3)

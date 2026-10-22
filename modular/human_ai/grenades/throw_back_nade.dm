@@ -84,7 +84,7 @@
 
 				var/has_friendly = FALSE
 				for(var/mob/possible_friendly in range(brain.friendly_throw_check_range, location)) // SS220 EDIT: use configurable range from brain
-					if(brain.grenade_would_harm_friendly(possible_friendly))
+					if((possible_friendly == tied_human) || (brain.setting("throwback_safety") && brain.grenade_would_harm_friendly(possible_friendly)))
 						has_friendly = TRUE
 						break
 
@@ -107,20 +107,28 @@
 			if(path_blocker.density)
 				return FALSE
 	for(var/mob/possible_friendly in range(brain.friendly_throw_check_range, target_turf))
-		if(brain.grenade_would_harm_friendly(possible_friendly))
+		if((possible_friendly == tied_human) || (brain.setting("throwback_safety") && brain.grenade_would_harm_friendly(possible_friendly)))
 			return FALSE
 	return TRUE
 
 /// Finds a safe visible turf on the hostile side before the NPC risks handling the grenade.
 /datum/ai_action/throw_back_nade/proc/get_hostile_throw_target(mob/living/carbon/human/tied_human, obj/item/explosive/grenade/grenade)
 	var/list/possible_targets = list()
-	for(var/mob/living/carbon/target in range(brain.view_distance, tied_human))
-		if(brain.can_target(target))
+	for(var/mob/living/carbon/target in view(brain.view_distance, tied_human))
+		// Grenade trajectories and blast safety are checked below, not by the firearm friendly-fire lane.
+		if(brain.can_target(target, check_fire_lane = FALSE))
 			possible_targets += target
 	for(var/mob/living/carbon/target as anything in shuffle(possible_targets))
 		var/turf/target_turf = get_turf(target)
 		if(can_throw_back_to_target(tied_human, grenade, target_turf))
 			return target_turf
+		for(var/turf/near_target as anything in range(1, target_turf))
+			if(can_throw_back_to_target(tied_human, grenade, near_target))
+				return near_target
+	if(!brain.setting("throwback_safety"))
+		var/turf/fallback = get_directional_throw_target(tied_human)
+		if(can_throw_back_to_target(tied_human, grenade, fallback))
+			return fallback
 	return null
 
 /// Keeps the reaction action alive while the NPC creates more than four tiles of separation.

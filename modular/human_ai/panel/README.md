@@ -1,5 +1,7 @@
 # Human AI settings panel
 
+Battle controls include directional weapon scatter (0–3, fractional values allowed, default1; client-controlled shooters and intrinsic pellet patterns unchanged) and ally combat spacing (default OFF in all presets). Spacing gates both local separation and cover crowding rejection, independently of retreat and grenade escape. Save format v5 imports v1–4 with spacing OFF and missing legacy scatter set to1.
+
 Open **Game Master → HumanAI → Human AI Settings** (R_DEBUG required).
 
 This directory owns the panel: `settings_panel.dm`, `HumanAISettings.tsx` and its local SWC configuration. TGUI contains only the interface export and dependency bridge. Runtime policy and persistence are in `../configuration`; combat, medicine, navigation and equipment consume the policy in their own subsystems.
@@ -12,9 +14,9 @@ All edits are drafts. Difficulty and slot loading never apply automatically. Set
 
 ## Persistence
 
-Each admin ckey has exactly three slots in `data/player_saves/<initial>/<ckey>/human_ai_settings.sav`. Names accept Cyrillic/Latin letters, digits and spaces, up to 40 characters. Save/overwrite, rename and delete require confirmation. Schema version 2 adds grenade_chance and stealth_enabled. Valid version-1 profiles retain all existing values and acquire defaults for only these two fields; arbitrary partial or malformed profiles are rejected.
+Each admin ckey has exactly three slots in `data/player_saves/<initial>/<ckey>/human_ai_settings.sav`. Names accept Cyrillic/Latin letters, digits and spaces, up to 40 characters. Save/overwrite, rename and delete require confirmation. Schema version 2 introduced grenade_chance and stealth_enabled; version 3 adds the controls below. Older profiles retain existing values and acquire defaults for newly introduced fields; arbitrary partial or malformed profiles are rejected.
 
-Global changes normally last for this server process. «Сохранить для сервера после перезапуска» persists the currently applied global profile to `data/human_ai_settings.sav`; it does not apply/save a draft. Built-in profiles do not occupy personal slots.
+Global changes normally last for this server process. «Сохранить для сервера после перезапуска» persists the currently applied global profile to `data/human_ai_settings.sav`; it does not apply/save a draft. Built-in profiles do not occupy personal slots. Version 3 adds health_percent (100), grenade_safety and throwback_safety (both on) to older profiles without losing their values.
 
 ## Safety and semantics
 
@@ -30,7 +32,13 @@ Global changes normally last for this server process. «Сохранить дл�
 
 All presets allow self-care, self synthetic repair, doors, prying and climbing. Easy forbids destruction, ally synthetic repair, tactical weapon switching and proactive reload. All retain escape from live grenades, protected objects and low-health retreat. Medium is the initial profile when no valid server default exists.
 
-Settings restrict existing capabilities; they do not give an unequipped NPC medical supplies, tools or forbidden actions. Protected destruction, physics, friendly-fire checks, overdose checks and live grenade escape remain mandatory. Disabling grenade throwback still permits escape. A committed throw is allowed to finish.
+Settings do not give an unequipped NPC medical supplies or tools. Protected destruction, physics, firearm friendly-fire checks, overdose checks and live grenade escape remain mandatory. Grenade friendly safety can be disabled independently for offensive throws (including launcher) and throwbacks. Self-distance, trajectory/range and fuse checks remain. Disabling throwback still permits escape. A committed throw is allowed to finish.
+
+Health is 10–300% of species base capacity, default100, without modifying the shared species or healing existing injuries. Lowering capacity can kill an injured NPC. It does not scale limb integrity or prevent organ-loss death. Accuracy supports 0.3–3 times the weapon's accuracy, not a guaranteed hit probability.
+
+Live grenades are picked up only within two tiles with sufficient fuse time. Otherwise NPCs seek a reachable position at least five tiles away. Offensive landing targets must be on or within one tile of the hostile; an out-of-range enemy no longer causes a wasted short throw. Combat spacing seeks two-tile separation from allied NPCs with local physical steps; tight terrain and hold boundaries can prevent full spacing.
+
+Medical dose checks include patient-wide pending oral ingestion vessels as well as bloodstream levels. This covers multiple NPC medics and pills fed by players while absorption is delayed. It cannot prevent a player deliberately administering an unsafe later dose.
 
 Reaction is a minimum firing delay after acquiring a new target, quantized by AI processing. Accuracy scales projectile accuracy rather than guaranteeing a hit percentage. Weapon-specific burst limits still apply. Easy cover prefers the nearest positively scored safe tile; medium uses the existing score; hard rescores when hit inside cover. Tactical range adds spacing against a visible human without a firearm in their active hand. Low-health spacing, not teleportation, implements retreat. Follow distance adds to the existing squad formation distance. Hold radius adds a restriction to the issued boundary; live grenade escape can temporarily leave it. Path retry threshold increases the existing failure backoff rather than forcing a path through scenery.
 

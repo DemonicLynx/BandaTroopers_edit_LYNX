@@ -315,11 +315,36 @@
 	for(var/datum/reagent/source_reagent as anything in source.reagents.reagent_list)
 		if(source_reagent.overdose <= 0)
 			continue
-		var/resulting_volume = target.reagents.get_reagent_amount(source_reagent.id) + (source_reagent.volume * transfer_ratio)
+		var/resulting_volume = target.reagents.get_reagent_amount(source_reagent.id) + target.human_ai_pending_dose(source_reagent.id) + (source_reagent.volume * transfer_ratio)
 		if(resulting_volume > source_reagent.overdose)
 			return FALSE
 	return TRUE
 // SS220 EDIT - END
+
+/// All medics see the same swallowed-but-not-yet-absorbed medication, including player-fed pills.
+/atom/movable
+	var/list/human_ai_ingestion_vessels
+
+/atom/movable/proc/human_ai_pending_dose(reagent_id)
+	var/amount = 0
+	for(var/datum/reagents/vessel/pending as anything in human_ai_ingestion_vessels)
+		if(!QDELETED(pending))
+			amount += pending.get_reagent_amount(reagent_id)
+	return amount
+
+/datum/reagents/vessel
+	var/datum/weakref/human_ai_ingestion_patient
+
+/datum/reagents/vessel/proc/human_ai_track_ingestion(atom/movable/patient)
+	human_ai_ingestion_patient = WEAKREF(patient)
+	LAZYADD(patient.human_ai_ingestion_vessels, src)
+
+/datum/reagents/vessel/Destroy()
+	var/atom/movable/patient = human_ai_ingestion_patient?.resolve()
+	if(patient)
+		LAZYREMOVE(patient.human_ai_ingestion_vessels, src)
+	human_ai_ingestion_patient = null
+	return ..()
 
 /datum/human_ai_brain/proc/healing_start_check(mob/living/carbon/human/target)
 	if(!settings_allow_treatment(target))
