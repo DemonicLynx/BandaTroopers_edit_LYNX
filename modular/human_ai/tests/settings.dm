@@ -1,3 +1,122 @@
+/datum/unit_test/human_ai_pursuit_team/Run()
+	var/turf/start = run_loc_floor_bottom_left
+	var/list/brains = list()
+	for(var/i in 1 to 3)
+		var/mob/living/carbon/human/owner = allocate(/mob/living/carbon/human, start)
+		var/datum/human_ai_brain/brain = allocate(/datum/human_ai_brain, owner)
+		brain.settings_snapshot = human_ai_settings_preset("hard")
+		brains += brain
+	var/datum/human_ai_squad/squad = SShuman_ai.create_new_squad()
+	allocated += squad
+	for(var/datum/human_ai_brain/brain as anything in brains)
+		squad.add_to_squad(brain)
+	var/datum/human_ai_brain/scout = brains[1]
+	var/datum/human_ai_brain/cover = brains[2]
+	var/datum/human_ai_brain/flank = brains[3]
+	flank.tied_human.forceMove(get_step(get_step(start, EAST), EAST))
+	scout.settings_snapshot["pursuit_share_radius"] = 1
+	var/mob/living/carbon/human/enemy = allocate(/mob/living/carbon/human, get_step(start, NORTH))
+	scout.pursuit_record_observation(enemy)
+	TEST_ASSERT_EQUAL(cover.pursuit_observed_turf, get_turf(enemy), "Nearby squadmate received no report")
+	TEST_ASSERT_NULL(flank.pursuit_observed_turf, "Report exceeded configured range")
+	TEST_ASSERT_NULL(cover.current_target, "Shared report assigned a live target")
+	scout.settings_snapshot["pursuit_share_radius"] = 7
+	scout.pursuit_next_report = 0
+	scout.pursuit_record_observation(enemy)
+	TEST_ASSERT_EQUAL(flank.pursuit_observed_turf, get_turf(enemy), "In-range squadmate received no report")
+	TEST_ASSERT_EQUAL(scout.pursuit_choose_role(), 0, "First member was not scout")
+	TEST_ASSERT_EQUAL(cover.pursuit_choose_role(), 1, "Second member was not cover")
+	TEST_ASSERT_EQUAL(flank.pursuit_choose_role(), 2, "Third member was not flanker")
+	flank.pursuit_start()
+	TEST_ASSERT(flank.pursuit_goal && flank.pursuit_goal != flank.pursuit_anchor, "Flanker did not choose a lateral waypoint")
+	cover.settings_snapshot["pursuit_share"] = FALSE
+	cover.pursuit_observed_turf = null
+	cover.pursuit_observed_at = -1
+	scout.pursuit_next_report = 0
+	scout.pursuit_record_observation(enemy)
+	TEST_ASSERT_NULL(cover.pursuit_observed_turf, "Disabled reporting accepted a report")
+
+/datum/unit_test/human_ai_pursuit/Run()
+	var/turf/start = run_loc_floor_bottom_left
+	var/turf/observed = get_step(start, NORTH)
+	var/mob/living/carbon/human/owner = allocate(/mob/living/carbon/human, start)
+	var/mob/living/carbon/human/enemy = allocate(/mob/living/carbon/human, observed)
+	var/datum/human_ai_brain/brain = allocate(/datum/human_ai_brain, owner)
+	brain.settings_snapshot = human_ai_settings_preset("hard")
+	brain.pursuit_record_observation(enemy)
+	var/turf/second = get_step(observed, EAST)
+	enemy.forceMove(second)
+	brain.pursuit_record_observation(enemy)
+	TEST_ASSERT_EQUAL(brain.pursuit_observed_heading, EAST, "Observed movement did not establish heading")
+	enemy.forceMove(get_step(second, NORTH))
+	TEST_ASSERT_EQUAL(brain.pursuit_observed_turf, second, "Unobserved enemy movement leaked into memory")
+	TEST_ASSERT(brain.pursuit_can_start(), "Fresh observation did not allow search")
+	brain.in_cover = TRUE
+	brain.pursuit_update()
+	TEST_ASSERT(!brain.in_cover, "Stale cover prevented eligible lost-contact search")
+	brain.pursuit_start()
+	TEST_ASSERT_EQUAL(brain.pursuit_deadline, world.time + 10 SECONDS, "Approach did not get a separate budget")
+	var/total_deadline = brain.pursuit_total_deadline
+	TEST_ASSERT_EQUAL(brain.pursuit_goal, second, "Solo search did not begin at last seen position")
+	TEST_ASSERT_EQUAL(brain.pursuit_search_heading, EAST, "Search ignored observed heading")
+	var/turf/point = brain.pursuit_pick_point()
+	if(point)
+		TEST_ASSERT(get_dist(point, second) <= brain.setting("pursuit_radius"), "Search candidate escaped radius")
+		brain.pursuit_visited[point] = TRUE
+		TEST_ASSERT_NOTEQUAL(brain.pursuit_pick_point(), point, "Search repeated a visited point")
+	brain.pursuit_search_depth = brain.setting("pursuit_radius")
+	TEST_ASSERT_NULL(brain.pursuit_pick_point(), "Directional search exceeded its depth limit")
+	brain.settings_snapshot["pursuit_predict"] = FALSE
+	brain.pursuit_start()
+	TEST_ASSERT_EQUAL(brain.pursuit_search_heading, get_dir(start, second), "Prediction off did not use approach direction")
+	brain.settings_snapshot["pursuit_predict"] = TRUE
+	owner.forceMove(second)
+	brain.pursuit_next_point()
+	TEST_ASSERT(brain.pursuit_inspecting, "Anchor arrival did not start inspection")
+	TEST_ASSERT_EQUAL(brain.pursuit_deadline, min(world.time + brain.setting("chase_time") * 10, total_deadline), "Inspection deadline is incorrect")
+	owner.forceMove(start)
+	brain.settings_snapshot["pursuit_enabled"] = FALSE
+	brain.pursuit_update()
+	TEST_ASSERT(!brain.pursuit_active && !brain.pursuit_returning && !brain.pursuit_can_start(), "Master off did not cancel search")
+	brain.settings_snapshot["pursuit_enabled"] = TRUE
+	TEST_ASSERT(!brain.pursuit_receive_report(second, brain.pursuit_consumed_at, EAST), "Consumed report restarted search")
+	brain.pursuit_observed_at = world.time - 1000
+	brain.pursuit_consumed_at = -1
+	TEST_ASSERT(!brain.pursuit_can_start(), "Expired memory started search")
+	brain.pursuit_observed_at = world.time
+	brain.pursuit_consumed_at = -1
+	brain.pursuit_start()
+	owner.forceMove(observed)
+	brain.pursuit_finish()
+	TEST_ASSERT(brain.pursuit_returning && brain.pursuit_goal == start, "Search did not return to origin without an order")
+	brain.pursuit_clear_search()
+	brain.pursuit_consumed_at = -1
+	var/datum/ai_order/order = allocate(/datum/ai_order)
+	brain.current_order = order
+	brain.pursuit_start()
+	brain.pursuit_finish()
+	TEST_ASSERT(brain.current_order == order && !brain.in_combat && !brain.pursuit_returning, "Completion replaced existing order")
+	brain.current_order = null
+	brain.pursuit_consumed_at = -1
+	brain.pursuit_start()
+	var/turf/door_turf = get_step(observed, EAST)
+	allocate(/obj/structure/machinery/door/airlock, door_turf)
+	TEST_ASSERT(brain.pursuit_caution(door_turf), "Door did not trigger caution pause")
+	brain.pursuit_pause_until = 0
+	TEST_ASSERT(!brain.pursuit_caution(door_turf), "Same position paused repeatedly")
+	brain.pursuit_clear_search()
+	brain.pursuit_observed_at = -1
+	brain.pursuit_consumed_at = -1
+	TEST_ASSERT(brain.pursuit_receive_report(second, world.time, EAST), "Fresh report rejected")
+	TEST_ASSERT_NULL(brain.current_target, "Report granted a hidden shooting target")
+	TEST_ASSERT(!brain.pursuit_receive_report(start, world.time - 1, WEST), "Older report replaced newer observation")
+	var/list/legacy = human_ai_settings_preset()
+	for(var/key in legacy.Copy())
+		if(findtext(key, "pursuit_") == 1)
+			legacy -= key
+	TEST_ASSERT(human_ai_settings_import(legacy, 5), "Version5 migration failed")
+	TEST_ASSERT(!human_ai_settings_import(legacy, 6), "Version6 accepted incomplete pursuit profile")
+
 /datum/unit_test/human_ai_settings_schema/Run()
 	for(var/level in list("easy", "medium", "hard"))
 		TEST_ASSERT(human_ai_settings_validate(human_ai_settings_preset(level)), "Invalid built-in difficulty profile")

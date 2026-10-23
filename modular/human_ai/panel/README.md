@@ -1,6 +1,18 @@
 # Human AI settings panel
 
-Battle controls include directional weapon scatter (0–3, fractional values allowed, default1; client-controlled shooters and intrinsic pellet patterns unchanged) and ally combat spacing (default OFF in all presets). Spacing gates both local separation and cover crowding rejection, independently of retreat and grenade escape. Save format v5 imports v1–4 with spacing OFF and missing legacy scatter set to1.
+Battle controls include directional weapon scatter (0–3, fractional values allowed, default1; client-controlled shooters and intrinsic pellet patterns unchanged) and ally combat spacing (default OFF in all presets). Spacing gates both local separation and cover crowding rejection, independently of retreat and grenade escape. Save format v6 imports v1–5, preserving existing values and adding missing controls.
+
+## Преследование
+
+Separate category and module directory `../pursuit/`: visual memory/reporting, bounded search, and replacement chase action. The master switch controls lost-contact search, not visible combat. Search uses only last observed position/heading/time, at most eight extra points within six tiles; blocked goals have a four-second no-progress limit. Native navigation handles doors and directed barricades, without forced movement.
+
+| Difficulty | Time | Radius | Extra points | Heading | Reports | Squad roles |
+|---|---|---|---|---|---|---|
+| Easy | 3 s | 2 | 1 | off | off | off |
+| Medium | 7 s | 3 | 3 | on | on | off |
+| Hard | 12 s | 5 | 5 | on | on | on |
+
+All presets enable pursuit, cautious movement (0.5-second pause), and return. Local one-hop reports require the same squad/faction and level, default range7; scan at most16 squad entries once per second. Reports never assign a shooting target or relay hidden coordinates. Squad roles are scout, stationary covering observer, and lateral approach followed by the last seen point; a flank is an attempted physical route, not guaranteed encirclement. Door/corner pauses occur once per tile during search and do not delay grenade escape. Completion releases combat state for the retained order; without an order, return to the search origin is capped at10 seconds. Master off or Hold cancels search; changing the order supersedes it. Defaults for new controls are applied to legacy saves; existing chase_time is retained.
 
 Open **Game Master → HumanAI → Human AI Settings** (R_DEBUG required).
 
@@ -43,3 +55,8 @@ Medical dose checks include patient-wide pending oral ingestion vessels as well 
 Reaction is a minimum firing delay after acquiring a new target, quantized by AI processing. Accuracy scales projectile accuracy rather than guaranteeing a hit percentage. Weapon-specific burst limits still apply. Easy cover prefers the nearest positively scored safe tile; medium uses the existing score; hard rescores when hit inside cover. Tactical range adds spacing against a visible human without a firearm in their active hand. Low-health spacing, not teleportation, implements retreat. Follow distance adds to the existing squad formation distance. Hold radius adds a restriction to the issued boundary; live grenade escape can temporarily leave it. Path retry threshold increases the existing failure backoff rather than forcing a path through scenery.
 
 Medicine always retains threat and patient-safety checks. The out-of-combat option adds a stricter requirement. Proactive reload requires no combat, a detachable magazine below 25%, and a better compatible carried replacement. Runtime settings changes and server saves are logged in the admin log.
+# Направленный поиск
+
+Подход к последней позиции имеет отдельный предел 10 секунд. Время из настройки осмотра отсчитывается после фактического прибытия; общий предел — 10 секунд плюс настройка. Укрытие без текущей цели не блокирует допустимый поиск. Временная неудача шага сохраняет цель, но отсутствие продвижения 4 секунды завершает попытку (длительное штатное действие ожидается лишь в пределах общего срока). Прикрывающий NPC по-прежнему может оставаться на месте.
+
+После последней замеченной позиции поиск продвигается по направлению движения цели (при выключенном прогнозировании — по направлению подхода NPC). Следующие точки выбираются с шагом до двух клеток, с боковыми вариантами под 45 градусов, в пределах заданного радиуса. Это не полный обыск комнат: NPC замечает доступных наблюдению врагов по пути. Несколько дверей подряд обрабатываются обычной навигацией и требуют доступного прохода. Недоступный маршрут пропускается; время и число точек ограничены. Прикрывающий участник группы сохраняет свою роль.

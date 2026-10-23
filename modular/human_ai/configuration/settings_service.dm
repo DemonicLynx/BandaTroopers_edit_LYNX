@@ -38,7 +38,7 @@ GLOBAL_DATUM_INIT(human_ai_settings, /datum/human_ai_settings_service, new)
 /datum/human_ai_settings_service/proc/save_default()
 	ensure_loaded()
 	var/savefile/storage = new("data/human_ai_settings.sav")
-	storage["version"] << 5
+	storage["version"] << 6
 	storage["profile"] << profile
 
 /datum/human_ai_brain

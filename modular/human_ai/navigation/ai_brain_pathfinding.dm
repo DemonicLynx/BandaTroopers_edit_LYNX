@@ -1,4 +1,18 @@
 /datum/human_ai_brain
+	/// Capture an unexpected enclosure once without changing movement or container behavior.
+	var/reported_scenery_containment = FALSE
+
+/datum/human_ai_brain/proc/report_scenery_containment()
+	if(reported_scenery_containment || !has_valid_tied_human())
+		return
+	var/atom/container = tied_human.loc
+	if(!istype(container, /obj/structure/bed/chair) && !istype(container, /obj/structure/surface/table) && !istype(container, /obj/structure/barricade))
+		return
+	reported_scenery_containment = TRUE
+	var/turf/position = get_turf(container)
+	stack_trace("Human AI scenery containment: NPC=[tied_human] ([REF(tied_human)]), container=[container.type] ([REF(container)]), turf=[position?.x],[position?.y],[position?.z], path_target=[current_path_target]. No recovery movement performed.")
+
+/datum/human_ai_brain
 	var/navigation_generation = 0
 	var/turf/navigation_failure_destination
 	/// Delay timer for when the AI can next move, based on the tied_human's move delay
@@ -109,6 +123,8 @@
 /datum/human_ai_brain/proc/complete_adjacent_move_to_turf(turf/next_turf, clear_navigation_state = TRUE, list/interactions)
 	if(!tied_human || !next_turf || get_dist(next_turf, tied_human) != 1)
 		return FALSE
+	if(pursuit_moving && pursuit_active && !current_target && !has_live_grenade_emergency() && pursuit_caution(next_turf))
+		return TRUE
 	// A standard delayed climb owns movement until it finishes or is interrupted.
 	if(tied_human.action_busy)
 		return TRUE
@@ -145,6 +161,8 @@
 	var/turf/previous_turf = get_turf(tied_human)
 	var/successful_move = tied_human.Move(next_turf, get_dir(tied_human, next_turf))
 	if(successful_move)
+		if(pursuit_moving)
+			pursuit_last_direction = get_dir(previous_turf, get_turf(tied_human))
 		last_navigation_turf = previous_turf
 		on_navigation_success(clear_navigation_state)
 

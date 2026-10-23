@@ -1,20 +1,15 @@
-# Active scatter contract
+# Contract
 
-- [x] MUST combat_spacing toggle default OFF, action and cover gates, migration and preset assertions.
+Current: implement cover handoff, phase deadlines, bounded retries, update help and regression assertions; compile. Live map validation remains separate.
 
-- [x] MUST schema/help, NPC-only runtime hook, migration (now version5).
-- [x] CHECK production compile; regression assertions added but not executed this turn.
-- KEEP previous changes; no lobby changes or shared gun mutations.
+Current follow-up DONE: radial picker replaced, behavior documented, heading/depth regression assertions added. Production DM compile 0 errors/0 warnings; diff check clean. New runtime assertions and live multi-door scenario NOT run. No test build artifacts generated. Earlier completed items below remain KEEP requirements.
 
-# Previous contract
-
-- [x] MUST M1 health percent, accuracy 3, help, v3 migration.
-- [x] MUST M2 independent grenade safety switches, retaining physical/fuse checks.
-- [x] MUST M3 pickup radius 2; retreat separation 5; landing within 1 tile of hostile.
-- [x] MUST M4 bounded combat separation respecting order boundaries.
-- [x] MUST M5 patient-wide pending dose accounting.
-- [x] KEEP global alive/new scope, dead exclusion, slots, physical movement.
-- [x] REJECT UI-only knobs, shared species mutation, teleportation, per-medic-only cooldown.
-- [x] CHECK DM build, focused regressions, diff/old-path audit. Runtime test assertions pass across final reruns; wrapper reports nonzero DreamDaemon exit, so full runner is not green.
-
-Old paths: blood-only OD sum, distant line grenade landing, accuracy max1 must be replaced.
+M1 DONE memory/search/prediction bounded by radius, time, points.
+M2 DONE squad roles and sharing real observations only, radius/cadence caps.
+M3 DONE corner/door hesitation without per-tick repeated pauses.
+M4 DONE completion clears search, resumes orders/following or returns to start with timeout.
+M5 DONE panel master/feature controls, help, presets, v6 persistence.
+K1 DONE physical navigation, emergencies, Hold, dead exclusion, three personal slots.
+R1 DONE no live hidden enemy coordinates, blind global scans, teleportation, legacy fallback.
+C1 DONE WITH LIMITATION: DM0/0, TGUI/tsc pass, three focused assertions suites pass; runner exits nonzero8640. Focus removed, test artifacts deleted after process check. Live visual validation not performed.
+Old path audit: combat/chase_target.dm removed/replaced by pursuit/chase_action.dm under same action type; settings_allow_action must not retain old timer-only gate.

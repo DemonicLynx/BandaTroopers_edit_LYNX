@@ -1,7 +1,7 @@
 # Decisions
 
-Combat spacing switch controls ally separation and cover crowding rejection, not enemy distance or grenade escape. Legacy profiles default OFF. Version5 imports versions1–4.
+Approved stall fix: approach budget10s from start, then configured search seconds on actual anchor arrival, total10s+search cap. Memory freshness still uses chase_time before start. Movement FALSE is transient until existing4s no-progress timeout. Failed anchor ends search rather than marking it reached. Clear cover in maintenance before action arbitration only for eligible search with no visible target or grenade emergency.
 
-Scatter: multiply final local total_scatter_angle after burst/full-auto/skill modifiers. Client-controlled and non-AI mobs return1. Default1 across presets. Intrinsic pellet pattern unchanged. Persist version4 with legacy default1; strict validation retained.
+Directional follow-up: sample forward and +/-45-degree rays, advancing two tiles per waypoint within the original radius. Skip unsafe destinations, let native navigation decide transit and door access. Prediction-off uses approach heading, stationary fallback uses initial facing. Flanker retains lateral initial approach. No room discovery or new settings needed.
 
-Health 10–300%, default100, preserve injuries, do not mutate shared species. Accuracy up to3. Safety off ignores allied blast proximity but retains self distance, walls/range/fuse. Throwback enable remains separate. Combat separation aims at2 tiles, best effort. Track pending ingestion vessels on patient, not timer guesses.
+All six approved. Master controls lost-contact pursuit only, not visible combat or retreat. Defaults: enabled; easy one extra point/no team/prediction, medium three points/prediction/sharing, hard five/team roles. Radius max6, group iteration cap16, candidates max169. Roles stable per search; report shares position/timestamp/direction, never enemy reference; no relay. Same order datum retained; fallback return anchor only without a current order. No changes to scenery diagnostic.

@@ -1,9 +1,7 @@
-# Active: NPC weapon scatter 2026-10-22
+# Directional pursuit follow-up
 
-Additional active request: MUST configurable combat spacing, default OFF in every preset and legacy saves. KEEP retreat/grenade escape independent. CHECK both spacing action and cover crowding filter; persistence version5.
+Current approved fix MUST release stale cover for eligible lost-contact search, retry transient movement failures, separate approach (10s) from configured search duration with fixed total cap. KEEP Hold/emergency priority, cover role, physical collisions, return/orders. REJECT instant point abandonment and extending deadline on retries. CHECK compile and source regressions.
 
-MUST add global scatter multiplier 0–3, default1, Battle panel/help, saved slots/server migration. KEEP previous tuning changes and player weapon behavior. REJECT shared weapon mutation or accuracy substitution. CHECK final angle after burst/skills, persistence and compile. Scope: directional gun scatter, not intrinsic pellet spread.
+MUST replace radial waypoint scoring with bounded forward/side candidate sampling after last contact. KEEP six pursuit features, native multi-door traversal, time/radius/point limits, scenery diagnostic. REJECT room flood-fill, hidden target reads, teleportation and blanket object bans. CHECK compile and directional source regressions. No guarantee that every room is searched.
 
-# Previous completed tuning
-
-Implement health 10–300%, accuracy up to 3, independent offensive/throwback safety switches, throwback within 2 tiles with sufficient fuse, escape to 5 tiles, landing near hostile, combat separation, pending-ingestion overdose prevention. Module owns logic; minimal health/ingestion hooks upstream. Preserve global alive/new scope, dead snapshots, slots and physics. No lobby changes.
+MUST bounded last-seen search, heading prediction, scout/cover/flank squad roles, radius-limited one-hop observation sharing, cautious corner/door pauses, finish/return to original orders. Panel category Pursuit with master and individual controls; version6 migrations, easy/medium/hard presets. KEEP no hidden-target tracking, global alive/new policy, current commands, native collisions and emergency priority. REJECT omniscience, teleportation, unbounded map search, legacy chase fallback. Source: human_ai/pursuit/*.dm; replace combat/chase_target include and implementation. CHECK builds and focused regression source/runtime where available. Preserve pending scenery-containment diagnostic unchanged.

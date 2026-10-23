@@ -110,6 +110,7 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 	recalculate_containers() // SS220 EDIT: pre-equipped AI missed equip signals; initialize storage roots before recursive appraisal
 	appraise_inventory()
 	sync_settings()
+	pursuit_update()
 	tied_human.a_intent_change(INTENT_DISARM)
 
 /datum/human_ai_brain/Destroy(force, ...)
@@ -124,6 +125,7 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 	return tied_human && !QDELETED(tied_human) && !isnull(tied_human.loc)
 
 /datum/human_ai_brain/proc/reset_ai()
+	pursuit_forget()
 	clear_navigation_path()
 	treatment_generation++
 	healing_someone = FALSE
@@ -211,6 +213,8 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 	if(!current_target)
 		set_target(get_target())
 
+	if(current_target)
+		update_target_pos()
 	if(current_target)
 		cancel_treatment_for_combat() // SS220 EDIT: a confirmed hostile target immediately outranks medical work
 		enter_combat()
@@ -316,6 +320,7 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 	settings_reaction_until = world.time + setting("reaction") * 10
 	settings_last_seen = world.time
 	target_turf = get_turf(current_target)
+	pursuit_record_observation(current_target)
 	invalidate_nearby_item_search()
 
 /datum/human_ai_brain/proc/lose_target()
@@ -352,6 +357,7 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 		if(tied_human in viewers(view_distance, current_target))
 			settings_last_seen = world.time
 			target_turf = get_turf(current_target)
+			pursuit_record_observation(current_target, TRUE)
 		else
 			COOLDOWN_START(src, fire_offscreen, 2 SECONDS)
 			lose_target()
@@ -362,6 +368,7 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 		return
 	lose_target()
 	target_turf = null
+	pursuit_forget()
 
 /datum/human_ai_brain/proc/on_target_death(datum/source)
 	SIGNAL_HANDLER
@@ -369,6 +376,7 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 		return
 	lose_target()
 	target_turf = null
+	pursuit_forget()
 
 /datum/human_ai_brain/proc/on_target_move(datum/source, atom/oldloc, dir, forced)
 	SIGNAL_HANDLER
@@ -499,6 +507,7 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 /datum/human_ai_brain/proc/on_move(atom/oldloc, direction, forced)
 	if(!has_valid_tied_human())
 		return
+	report_scenery_containment()
 
 	setup_detection_radius()
 
@@ -511,19 +520,6 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 	SIGNAL_HANDLER
 	if(!has_valid_tied_human())
 		return
-
-	if(squad_id) // call for help
-		var/datum/human_ai_squad/squad = SShuman_ai.squad_id_dict["[squad_id]"]
-		for(var/datum/human_ai_brain/squaddie as anything in squad.ai_in_squad)
-			if(!squaddie.has_valid_tied_human())
-				continue
-			if(squaddie.target_turf)
-				continue
-			if(get_dist(squaddie.tied_human, tied_human) > squaddie.view_distance)
-				continue
-			if(!squaddie.can_target(current_target))
-				continue
-			squaddie.target_turf = target_turf
 
 	if(tied_human.client)
 		return
@@ -540,6 +536,8 @@ GLOBAL_LIST_EMPTY(human_ai_brains)
 	SShuman_ai.combat_ever_started = TRUE
 
 /datum/human_ai_brain/proc/exit_combat()
+	if(has_valid_tied_human() && pursuit_active && setting("pursuit_enabled") && world.time < pursuit_deadline)
+		return
 	if(!has_valid_tied_human())
 		lose_target()
 		target_turf = null

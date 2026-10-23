@@ -39,6 +39,7 @@ export const HumanAISettings = () => {
 	const [section, setSection] = useState('Бой');
 	const sections = [
 		'Бой',
+		'Преследование',
 		'Гранаты',
 		'Медицина',
 		'Препятствия',

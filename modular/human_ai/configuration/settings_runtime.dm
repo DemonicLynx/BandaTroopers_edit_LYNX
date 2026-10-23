@@ -14,7 +14,7 @@
 	if(istype(action, /datum/ai_action/item_pickup))
 		return setting("pickup")
 	if(istype(action, /datum/ai_action/chase_target))
-		return world.time < settings_last_seen + setting("chase_time") * 10
+		return setting("pursuit_enabled") && setting("chase_time") > 0
 	return TRUE
 
 /datum/human_ai_brain/proc/settings_allow_treatment(mob/living/carbon/human/patient)
