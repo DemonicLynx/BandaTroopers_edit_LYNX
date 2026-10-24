@@ -122,7 +122,7 @@
 		var/turf/target_turf = get_turf(target)
 		if(can_throw_back_to_target(tied_human, grenade, target_turf))
 			return target_turf
-		for(var/turf/near_target as anything in range(1, target_turf))
+		for(var/turf/near_target in range(1, target_turf))
 			if(can_throw_back_to_target(tied_human, grenade, near_target))
 				return near_target
 	if(!brain.setting("throwback_safety"))

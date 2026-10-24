@@ -63,7 +63,7 @@
 	if(can_fire_underbarrel_grenade_at(launcher, hostile_turf))
 		return hostile_turf
 	var/turf/best_target
-	for(var/turf/candidate as anything in range(1, hostile_turf))
+	for(var/turf/candidate in range(1, hostile_turf))
 		if(can_fire_underbarrel_grenade_at(launcher, candidate))
 			best_target = candidate
 			break
@@ -173,7 +173,7 @@
 		return null
 	var/turf/best_turf
 	var/best_score = -INFINITY
-	for(var/turf/candidate as anything in range(5, tied_human))
+	for(var/turf/candidate in range(5, tied_human))
 		if(candidate.z != tied_human.z || !human_ai_turf_is_safe(candidate, TRUE, FALSE))
 			continue
 		if((locate(/obj/item/explosive/mine) in candidate.contents) || (locate(/obj/flamer_fire) in candidate.contents))

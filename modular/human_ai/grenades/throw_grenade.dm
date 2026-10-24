@@ -172,7 +172,7 @@
 		return null
 
 	var/turf/best_target
-	for(var/turf/candidate as anything in range(1, hostile_turf))
+	for(var/turf/candidate in range(1, hostile_turf))
 		var/candidate_distance = get_dist(tied_human, candidate)
 		if(candidate_distance > effective_throw_range)
 			continue

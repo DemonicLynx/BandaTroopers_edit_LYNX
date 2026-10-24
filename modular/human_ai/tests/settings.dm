@@ -36,6 +36,26 @@
 	scout.pursuit_record_observation(enemy)
 	TEST_ASSERT_NULL(cover.pursuit_observed_turf, "Disabled reporting accepted a report")
 
+/datum/unit_test/human_ai_turf_destinations/Run()
+	var/turf/start = run_loc_floor_bottom_left
+	var/turf/next_tile = get_step(start, NORTH)
+	var/mob/living/carbon/human/owner = allocate(/mob/living/carbon/human, start)
+	var/datum/human_ai_brain/brain = allocate(/datum/human_ai_brain, owner)
+	var/obj/structure/bed/chair/chair = allocate(/obj/structure/bed/chair, next_tile)
+	var/obj/structure/machinery/door/firedoor/shutter = allocate(/obj/structure/machinery/door/firedoor, next_tile)
+	var/obj/effect/decal/cleanable/blood/splatter/blood = allocate(/obj/effect/decal/cleanable/blood/splatter, next_tile)
+	chair.density = FALSE
+	shutter.density = FALSE
+	for(var/atom/object as anything in list(chair, shutter, blood))
+		TEST_ASSERT(!brain.human_ai_turf_is_safe(object), "Scenery accepted as a turf")
+		TEST_ASSERT_NULL(brain.human_ai_get_safe_standing_turf_near(object), "Scenery normalized as a destination")
+		TEST_ASSERT(!brain.move_to_next_turf(object), "Navigation accepted an object")
+		TEST_ASSERT(!brain.complete_adjacent_move_to_turf(object), "Adjacent movement accepted an object")
+		TEST_ASSERT_EQUAL(owner.loc, start, "NPC entered scenery")
+	TEST_ASSERT(brain.complete_adjacent_move_to_turf(next_tile), "Nondense scenery blocked normal turf transit")
+	TEST_ASSERT_EQUAL(owner.loc, next_tile, "NPC did not remain directly on the turf")
+
+
 /datum/unit_test/human_ai_pursuit/Run()
 	var/turf/start = run_loc_floor_bottom_left
 	var/turf/observed = get_step(start, NORTH)

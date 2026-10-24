@@ -123,7 +123,7 @@
 	var/list/position_counts = get_nearby_idle_position_counts()
 	var/turf/best_position
 	var/best_score = -INFINITY
-	for(var/turf/candidate as anything in range(HUMAN_AI_IDLE_POSITION_RADIUS, origin))
+	for(var/turf/candidate in range(HUMAN_AI_IDLE_POSITION_RADIUS, origin))
 		if(candidate.z != origin.z)
 			continue
 		var/candidate_score = score_idle_defensive_position(candidate, position_counts)

@@ -6,7 +6,7 @@
 	if(reported_scenery_containment || !has_valid_tied_human())
 		return
 	var/atom/container = tied_human.loc
-	if(!istype(container, /obj/structure/bed/chair) && !istype(container, /obj/structure/surface/table) && !istype(container, /obj/structure/barricade))
+	if(!istype(container, /obj/structure/bed/chair) && !istype(container, /obj/structure/surface/table) && !istype(container, /obj/structure/barricade) && !istype(container, /obj/structure/machinery/door) && !istype(container, /obj/effect/decal))
 		return
 	reported_scenery_containment = TRUE
 	var/turf/position = get_turf(container)
@@ -104,7 +104,7 @@
 	return tied_human && destination && get_turf(tied_human) == destination && human_ai_turf_is_safe(destination, ignore_owner = TRUE)
 
 /datum/human_ai_brain/proc/get_adjacent_move_interactions(turf/next_turf)
-	if(!tied_human || !next_turf || get_dist(next_turf, tied_human) != 1)
+	if(!tied_human || !isturf(next_turf) || get_dist(next_turf, tied_human) != 1)
 		return null
 	if(!quick_order_step_within_boundary(next_turf)) // SS220 EDIT: permitted Hold actions still cannot path across their fallback boundary
 		return null
@@ -121,7 +121,7 @@
 	return L
 
 /datum/human_ai_brain/proc/complete_adjacent_move_to_turf(turf/next_turf, clear_navigation_state = TRUE, list/interactions)
-	if(!tied_human || !next_turf || get_dist(next_turf, tied_human) != 1)
+	if(!tied_human || !isturf(next_turf) || get_dist(next_turf, tied_human) != 1)
 		return FALSE
 	if(pursuit_moving && pursuit_active && !current_target && !has_live_grenade_emergency() && pursuit_caution(next_turf))
 		return TRUE
@@ -339,7 +339,7 @@
 	// SS220 EDIT - END
 
 /datum/human_ai_brain/proc/move_to_next_turf(turf/T, max_range = max_travel_distance)
-	if(!tied_human || !T)
+	if(!tied_human || !isturf(T))
 		return FALSE
 	T = human_ai_get_safe_standing_turf_near(T)
 	if(!T)

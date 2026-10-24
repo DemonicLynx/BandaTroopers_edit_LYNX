@@ -660,7 +660,7 @@
 	TEST_ASSERT(isnull(first_brain.get_adjacent_move_interactions(non_dense_prop_turf)), "Human AI movement accepted a step onto a non-dense structure.")
 
 	var/turf/uncovered_candidate
-	for(var/turf/candidate as anything in range(3, cluster_turf))
+	for(var/turf/candidate in range(3, cluster_turf))
 		if(candidate != cluster_turf && first_brain.human_ai_turf_is_safe(candidate) && first_brain.get_idle_position_cover_score(candidate) <= 0)
 			uncovered_candidate = candidate
 			break

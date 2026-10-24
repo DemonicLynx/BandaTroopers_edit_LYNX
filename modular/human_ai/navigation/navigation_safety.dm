@@ -29,7 +29,7 @@
 
 /// Finds a nearby real floor position when an order was clicked on scenery or another unsafe standing tile.
 /datum/human_ai_brain/proc/human_ai_get_safe_standing_turf_near(turf/requested_turf)
-	if(!requested_turf)
+	if(!isturf(requested_turf))
 		return null
 	if(human_ai_turf_is_safe(requested_turf, ignore_owner = TRUE))
 		return requested_turf
@@ -49,7 +49,7 @@
 /// Returns whether Human AI may stand on this turf without overlapping map scenery.
 /// Doors and selected traversal structures may be admitted only as path steps; their own interaction logic remains authoritative.
 /datum/human_ai_brain/proc/human_ai_turf_is_safe(turf/candidate, ignore_owner = FALSE, allow_doors = FALSE, allow_traversal_structures = FALSE)
-	if(QDELETED(candidate) || candidate.density || istype(candidate, /turf/closed) || istype(candidate, /turf/open/space) || istype(candidate, /turf/open/gm/river))
+	if(!isturf(candidate) || QDELETED(candidate) || candidate.density || istype(candidate, /turf/closed) || istype(candidate, /turf/open/space) || istype(candidate, /turf/open/gm/river))
 		return FALSE
 
 	var/has_platform_stairs = allow_traversal_structures && human_ai_turf_has_platform_stairs(candidate)

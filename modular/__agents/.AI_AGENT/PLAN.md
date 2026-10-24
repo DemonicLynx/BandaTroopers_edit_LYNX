@@ -1,7 +1,3 @@
-# Directional pursuit follow-up
+# NPC containment fix
 
-Current approved fix MUST release stale cover for eligible lost-contact search, retry transient movement failures, separate approach (10s) from configured search duration with fixed total cap. KEEP Hold/emergency priority, cover role, physical collisions, return/orders. REJECT instant point abandonment and extending deadline on retries. CHECK compile and source regressions.
-
-MUST replace radial waypoint scoring with bounded forward/side candidate sampling after last contact. KEEP six pursuit features, native multi-door traversal, time/radius/point limits, scenery diagnostic. REJECT room flood-fill, hidden target reads, teleportation and blanket object bans. CHECK compile and directional source regressions. No guarantee that every room is searched.
-
-MUST bounded last-seen search, heading prediction, scout/cover/flank squad roles, radius-limited one-hop observation sharing, cautious corner/door pauses, finish/return to original orders. Panel category Pursuit with master and individual controls; version6 migrations, easy/medium/hard presets. KEEP no hidden-target tracking, global alive/new policy, current commands, native collisions and emergency priority. REJECT omniscience, teleportation, unbounded map search, legacy chase fallback. Source: human_ai/pursuit/*.dm; replace combat/chase_target include and implementation. CHECK builds and focused regression source/runtime where available. Preserve pending scenery-containment diagnostic unchanged.
+MUST filter mixed range turf candidates, reject object navigation destinations, extend diagnostic, add regression. KEEP native chair/barricade shared-tile transit and prior pursuit edits. REJECT teleport recovery and blanket object bans. CHECK compile and regression; remove generated test artifacts.
