@@ -95,9 +95,13 @@
 		for(var/turf/T as anything in affecting_turfs)
 			LAZYREMOVE(T?.hybrid_lights_affecting, src)
 			//The turf is no longer affected by any lights, make it non-luminous.
-			var/area/A = T.loc
-			if(T?.luminosity && !A.base_lighting_alpha)
-				T.luminosity -= 1
+			// SS220 EDIT - START: balance only this mask's luminous turfs.
+			// var/area/A = T.loc
+			// if(T?.luminosity && !A.base_lighting_alpha)
+			//     T.luminosity -= 1
+			if(T)
+				remove_turf_luminosity(T)
+			// SS220 EDIT - END
 
 	//Clear the list
 	LAZYCLEARLIST(affecting_turfs)
@@ -113,7 +117,8 @@
 	for(var/turf/thing in dview(range, get_turf(attached_atom))) //most expensive part of shadow code is this dview and group_atoms
 		link_turf_to_light(thing)
 		//The turf is now affected by our light, make it luminous
-		thing.luminosity += 1
+		// thing.luminosity += 1
+		add_turf_luminosity(thing) // SS220 EDIT: cone contribution, radial shadow dependencies retained.
 		//Dont consider shadows about our turf.
 		if(!is_on_closed_turf)
 			if(thing == our_turf)

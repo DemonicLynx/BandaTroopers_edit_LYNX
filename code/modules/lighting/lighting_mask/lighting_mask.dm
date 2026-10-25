@@ -54,10 +54,13 @@
 	//Remove from affecting turfs
 	if(affecting_turfs)
 		for(var/turf/thing as anything in affecting_turfs)
-			var/area/A = thing.loc
 			LAZYREMOVE(thing.hybrid_lights_affecting, src)
-			if(!A.base_lighting_alpha)
-				thing.luminosity -= 1
+			// SS220 EDIT - START: per-mask balanced luminosity accounting.
+			// var/area/A = thing.loc
+			// if(!A.base_lighting_alpha)
+			//     thing.luminosity -= 1
+			remove_turf_luminosity(thing)
+			// SS220 EDIT - END
 		affecting_turfs = null
 	//Cut the shadows. Since they are overlays they will be deleted when cut from overlays.
 	LAZYCLEARLIST(shadows)

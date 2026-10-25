@@ -1,0 +1,6 @@
+#include "cursor.dm"
+#include "prototype.dm"
+#include "controller.dm"
+#include "luminosity.dm"
+#include "transform.dm"
+#include "tests.dm"

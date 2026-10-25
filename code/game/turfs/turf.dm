@@ -112,6 +112,8 @@
 /turf/Destroy(force)
 	if(hybrid_lights_affecting)
 		for(var/atom/movable/lighting_mask/mask as anything in hybrid_lights_affecting)
+			if(istype(mask, /atom/movable/lighting_mask/flashlight_60)) // SS220 EDIT: release directional contribution before turf replacement.
+				mask.remove_turf_luminosity(src)
 			LAZYREMOVE(mask.affecting_turfs, src)
 		hybrid_lights_affecting.Cut()
 
@@ -446,6 +448,8 @@
 	if(W.hybrid_lights_affecting)
 		for(var/atom/movable/lighting_mask/mask as anything in W.hybrid_lights_affecting)
 			LAZYADD(mask.affecting_turfs, W)
+			if(istype(mask, /atom/movable/lighting_mask/flashlight_60)) // SS220 EDIT: restore directional contribution on same-opacity turf replacement too.
+				mask.add_turf_luminosity(W)
 
 	if(W.directional_opacity != old_directional_opacity)
 		W.reconsider_lights()

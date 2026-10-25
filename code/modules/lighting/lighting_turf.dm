@@ -43,9 +43,11 @@
 
 	for(var/atom/movable/lighting_mask/mask as anything in hybrid_lights_affecting)
 		if(mask.blend_mode == BLEND_ADD)
-			totallums += LIGHT_POWER_ESTIMATION(mask.alpha, mask.radius, get_dist(src, get_turf(mask.attached_atom)))
+			// totallums += LIGHT_POWER_ESTIMATION(mask.alpha, mask.radius, get_dist(src, get_turf(mask.attached_atom)))
+			totallums += LIGHT_POWER_ESTIMATION(mask.alpha, mask.radius, get_dist(src, get_turf(mask.attached_atom))) * mask.turf_light_factor(src) // SS220 EDIT: cone/halo factor.
 		else
-			totallums -= LIGHT_POWER_ESTIMATION(mask.alpha, mask.radius, get_dist(src, get_turf(mask.attached_atom)))
+			// totallums -= LIGHT_POWER_ESTIMATION(mask.alpha, mask.radius, get_dist(src, get_turf(mask.attached_atom)))
+			totallums -= LIGHT_POWER_ESTIMATION(mask.alpha, mask.radius, get_dist(src, get_turf(mask.attached_atom))) * mask.turf_light_factor(src) // SS220 EDIT: ordinary masks retain factor1.
 	return clamp(totallums, 0.0, 1.0)
 
 ///Proc to add movable sources of opacity on the turf and let it handle lighting code.
