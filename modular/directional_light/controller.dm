@@ -47,6 +47,8 @@
 	var/last_event_state = "off"
 	var/mob/living/watched_holder
 	var/client/watched_client
+	/// Lifecycle/parameters dominate any coalesced aim-only request.
+	var/full_update_pending = TRUE
 
 /datum/component/directional_beam/Initialize()
 	if(!isitem(parent))
@@ -79,14 +81,25 @@
 	SIGNAL_HANDLER
 	var/obj/item/source = parent
 	if(!source.light_on)
+		// set_light(0) assigns light_on before signaling, unlike set_light_on().
+		stop_emission()
 		return
+	full_update_pending = TRUE
 	START_PROCESSING(SSdirectional_light, src)
+
+/// Both light APIs must release the emitter and all carrier subscriptions when off.
+/datum/component/directional_beam/proc/stop_emission()
+	watch_holder(null)
+	STOP_PROCESSING(SSdirectional_light, src)
+	QDEL_NULL(emitter)
+	full_update_pending = FALSE
+	last_event_state = "off"
 
 /datum/component/directional_beam/proc/wake_aim()
 	SIGNAL_HANDLER
 	// Stored items need lifecycle/movement notifications, not mouse or facing work.
 	if(emitter)
-		wake()
+		START_PROCESSING(SSdirectional_light, src)
 
 /// Subscribe to the current carrier, never to a global mob scan.
 /datum/component/directional_beam/proc/watch_holder(mob/living/holder)
@@ -100,29 +113,26 @@
 	if(watched_holder == holder)
 		return
 	if(watched_holder)
-		UnregisterSignal(watched_holder, list(COMSIG_MOVABLE_MOVED, COMSIG_ATOM_DIR_CHANGE, COMSIG_MOB_LOGIN, COMSIG_MOB_LOGOUT, "directional_light_aim"))
+		UnregisterSignal(watched_holder, list(COMSIG_MOVABLE_MOVED, COMSIG_ATOM_DIR_CHANGE, COMSIG_MOB_LOGIN, COMSIG_MOB_LOGOUT, COMSIG_MOB_CHANGE_VIEW, "directional_light_aim"))
 	watched_holder = holder
 	if(holder)
 		RegisterSignal(holder, list(COMSIG_MOVABLE_MOVED, COMSIG_MOB_LOGIN, COMSIG_MOB_LOGOUT), PROC_REF(wake))
 		RegisterSignal(holder, COMSIG_ATOM_DIR_CHANGE, PROC_REF(wake_aim))
 		var/obj/item/source = parent
 		if(source.directional_beam_mouse_aim)
-			RegisterSignal(holder, "directional_light_aim", PROC_REF(wake_aim))
+			RegisterSignal(holder, list(COMSIG_MOB_CHANGE_VIEW, "directional_light_aim"), PROC_REF(wake_aim))
 
 /datum/component/directional_beam/proc/on_toggle(datum/source, enabled)
 	SIGNAL_HANDLER
 	if(enabled)
-		wake()
+		full_update_pending = TRUE
 		// Setters signal before assignment. Render even a one-tick muzzle flash immediately.
 		process(0, TRUE)
 		STOP_PROCESSING(SSdirectional_light, src)
 	else
-		watch_holder(null)
-		STOP_PROCESSING(SSdirectional_light, src)
-		QDEL_NULL(emitter)
-		last_event_state = "off"
+		stop_emission()
 
-/// Native movement calls update_light immediately; aiming still uses its own tick.
+/// Publish movement immediately; completed shadow work must not repeat in the queue.
 /datum/component/directional_beam/proc/sync_position()
 	if(!emitter)
 		return
@@ -132,11 +142,17 @@
 		return
 	var/same_container = emitter.cached_loc == source.loc
 	if(destination != emitter.source_turf)
-		var/atom/movable/carrier = ismovable(source.loc) ? source.loc : source
 		var/turf/previous = emitter.source_turf
-		var/smooth_step = same_container && previous && previous.z == destination.z && get_dist(previous, destination) == 1
-		emitter.mask_holder.glide_size = smooth_step ? carrier.glide_size : INFINITY
-		emitter.mask_holder.forceMove(destination)
+		var/atom/movable/lighting_mask/flashlight_60/beam_mask = emitter.our_mask
+		beam_mask.movement_shadow_pending = TRUE
+		beam_mask.queue_mask_update()
+		if(SSlighting.initialized)
+			beam_mask.calculate_lighting_shadows()
+			if(!beam_mask.awaiting_update)
+				SSlighting.mask_queue -= beam_mask
+		// Initialization can yield while consuming the queue; leave it untouched.
+		else if(!previous || previous.z != destination.z || get_dist(previous, destination) > 1)
+			emitter.mask_holder.moveToNullspace()
 	if(!same_container)
 		emitter.find_containing_atom()
 	emitter.source_turf = destination
@@ -144,10 +160,12 @@
 
 /datum/component/directional_beam/process(delta_time, force_on = FALSE)
 	var/obj/item/source = parent
+	if(!force_on && !full_update_pending && emitter && source.light_on)
+		update_aim()
+		return PROCESS_KILL
+	full_update_pending = FALSE
 	if(!source.light_on && !force_on)
-		watch_holder(null)
-		QDEL_NULL(emitter)
-		last_event_state = "off"
+		stop_emission()
 		return PROCESS_KILL
 	var/mob/living/holder = isliving(source.loc) ? source.loc : null
 	watch_holder(holder)
@@ -161,13 +179,6 @@
 		QDEL_NULL(emitter)
 		last_event_state = "stored"
 		return PROCESS_KILL
-	if(holder)
-		var/aim_with_mouse = source.directional_beam_mouse_aim && holder.client
-		beam_angle = aim_with_mouse ? holder.client.directional_light_angle(holder) : dir2angle(holder.dir)
-		last_event_state = aim_with_mouse ? holder.client.directional_light_event : "body facing"
-	else
-		beam_angle = dir2angle(source.dir)
-		last_event_state = "floor"
 	var/beam_range = 10
 	if(isgun(source))
 		var/obj/item/weapon/gun/gun = source
@@ -183,6 +194,21 @@
 	emitter.source_turf = get_turf(source)
 	emitter.cached_loc = source.loc
 	emitter.set_light(beam_range, 8, source.light_color)
+	update_aim()
+	var/atom/movable/lighting_mask/flashlight_60/mask = emitter.our_mask
+	mask.ensure_shadows_ready()
+	return PROCESS_KILL
+
+/datum/component/directional_beam/proc/update_aim()
+	var/obj/item/source = parent
+	var/mob/living/holder = watched_holder
+	if(holder)
+		var/aim_with_mouse = source.directional_beam_mouse_aim && holder.client
+		beam_angle = aim_with_mouse ? holder.client.directional_light_angle(holder) : dir2angle(holder.dir)
+		last_event_state = aim_with_mouse ? holder.client.directional_light_event : "body facing"
+	else
+		beam_angle = dir2angle(source.dir)
+		last_event_state = "floor"
 	var/desired_angle = beam_angle - 180
 	var/angle_delta = abs(desired_angle - emitter.our_mask.current_angle)
 	// DM's % truncates fractions; preserve sub-degree values across the seam.
@@ -191,4 +217,3 @@
 	var/mouse_aim = holder?.client && source.directional_beam_mouse_aim && holder.client.directional_light_params
 	if(angle_delta && (!mouse_aim || angle_delta >= 1))
 		emitter.our_mask.rotate(desired_angle)
-	return PROCESS_KILL

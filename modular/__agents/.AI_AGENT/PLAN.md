@@ -1,28 +1,20 @@
-# PLAN
-
-## Active Task
-Normalize repository AI-agent instructions so approved implementation plans cannot be replaced by small fixes, wrappers, or test-only closure.
-
-## Goal
-- Remove contradictions between `AGENTS.md`, `.AI_AGENT/README.md`, `WORKFLOW_RULES.md`, and `POLICIES.md`.
-- Establish one execution order for approved plans: read-only discovery -> task-state contract -> plan-mapping challenge -> product-code/docs edits -> old-path audit -> task-state sync -> verification/final.
-- Preserve the existing repository preferences for `rg`, modular-first development, build tooling, UTF-8 docs, and non-destructive git behavior.
+# Old directional lighting: correctness stages 1–3
+Approved 2026-10-29 after read-only audit. Target C:/BandaTroopers_LYNX, not the desktop cwd. Experimental renderer remains archived in C:/BandaTroopers_RenderLab.
 
 ## Scope
-- Stable guidance files:
-  - `AGENTS.md`
-  - `modular/__agents/.AI_AGENT/README.md`
-  - `modular/__agents/.AI_AGENT/WORKFLOW_RULES.md`
-  - `modular/__agents/.AI_AGENT/POLICIES.md`
-- Active task-state files:
-  - `modular/__agents/.AI_AGENT/PLAN.md`
-  - `modular/__agents/.AI_AGENT/TODO.md`
-  - `modular/__agents/.AI_AGENT/DECISIONS.md`
-  - `modular/__agents/.AI_AGENT/EVIDENCE.md`
+MUST implement separate static/base/actual hybrid visibility accounting; lifecycle and camera aiming fixes; initial shadow-ready publication and correct full-tile versus border blockers with opacity/move/turn invalidation. Native full-wall grouping, compositor and existing movement publication remain.
+KEEP range10/power8/aperture, armor facing-only, floor facing, mouse/HUD fallback, deduplicated event queues, native queue comparison fix, unrelated user changes.
+REJECT new renderer rollout, movement/glide changes, broader performance/cache redesign (stage4), tests or compilation/server restart, global faster ticks, fullbright, destructive git operations.
 
-## Acceptance Criteria
-- No rule still depends on "large task" when the user has given or approved a concrete plan.
-- Task-state edits are clearly separated from product-code/docs edits.
-- `PASS WITH RISKS`, `BLOCKED`, and test status cannot hide incomplete `MUST/KEEP/REJECT` items.
-- Subagents are only used when explicitly allowed by the user and current higher-priority instructions.
-- Docs stay concise UTF-8 Markdown with no mojibake.
+## Entrypoints and ownership
+colonialmarines.dme -> modular/modular.dme -> directional_light/_directional_light.dme.
+Accounting: modular accounting/luminosity with native static object, area and turf lifecycle hooks.
+Lifecycle/aim: controller/cursor, gun activation and camera notifications.
+Occlusion: native shadow calculator minimal extension hooks, modular border lines/readiness, opacity recalculation/turn notification.
+Old-path audit: remove runtime luminosity increment/decrement accounting and static overwrite decisions based on dependency list; replace partial-as-full geometry for directional masks; remove new directional unshadowed publication. Native full-wall renderer intentionally remains callable.
+
+## Acceptance and verification
+Source/diff/include/callsite review only now. No compile, tests, server restart or runtime performance claims. Later manual acceptance: overlapping torches + ceiling/base lights; off/drop/storage/transfer; scoped aim/HUD; enable next to wall, open/close/turn border doors. Smooth walking remains explicitly outside this pass.
+
+## Handoff status
+Stages 1–3 implemented in source and statically reviewed. Conditional geometry-only subscriptions are necessary to retain walls hidden behind native opaque border cells; they do not expand gameplay illumination. See EVIDENCE.md for review findings and remaining verification limits. No runtime acceptance is implied. Stages 4–5 remain deferred.

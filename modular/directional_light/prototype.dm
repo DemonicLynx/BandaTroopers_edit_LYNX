@@ -7,6 +7,8 @@ PROCESSING_SUBSYSTEM_DEF(directional_light)
 /// Cached radial falloff with a feathered ~60-degree beam around SOUTH.
 /atom/movable/lighting_mask/flashlight_60
 	is_directional = TRUE
+	// Dynamic source creation attaches the mask before its first queued calculation.
+	invisibility = INVISIBILITY_ABSTRACT
 
 /atom/movable/lighting_mask/flashlight_60/Initialize(mapload, ...)
 	. = ..()

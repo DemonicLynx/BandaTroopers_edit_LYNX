@@ -74,8 +74,8 @@
 	var/baseline = ahead.luminosity
 	mask.add_turf_luminosity(ahead)
 	mask.add_turf_luminosity(ahead)
-	if(ahead.luminosity != baseline + 1)
-		Fail("Duplicate add must not accumulate luminosity.")
+	if(ahead.luminosity != 1 || !(mask in ahead.hybrid_light_contributors) || length(mask.luminous_turfs) != 1)
+		Fail("Duplicate add must retain one contribution and boolean visibility.")
 	mask.affecting_turfs = list(ahead, behind)
 	mask.rotate(0) // SOUTH
 	if(ahead.luminosity != baseline || (ahead in mask.luminous_turfs))
@@ -113,15 +113,27 @@
 	if(!beam.emitter)
 		return Fail("Movement test requires an enabled helmet emitter.")
 	wearer.glide_size = 8
+	SSlighting.fire(FALSE, TRUE)
+	var/count_before = SSlighting.total_shadow_calculations
 	var/turf/destination = get_step(wearer, NORTH)
 	wearer.forceMove(destination)
-	// Intentionally do not process the component: native movement must suffice.
 	if(beam.emitter.source_turf != destination || get_turf(beam.emitter.mask_holder) != destination)
-		Fail("Beam position must update before the next subsystem tick.")
-	if(beam.emitter.mask_holder.glide_size != wearer.glide_size)
-		Fail("Adjacent movement must match carrier glide.")
+		Fail("Movement must publish the new position immediately.")
+	if(SSlighting.total_shadow_calculations != count_before + 1 || (beam.emitter.our_mask in SSlighting.mask_queue))
+		Fail("Movement must calculate once and remove its completed queued work.")
+	destination = get_step(destination, NORTH)
+	wearer.forceMove(destination)
+	count_before = SSlighting.total_shadow_calculations
+	SSlighting.fire(FALSE, TRUE)
+	if(SSlighting.total_shadow_calculations != count_before)
+		Fail("Lighting queue must not repeat completed movement calculations.")
+	if(get_turf(beam.emitter.mask_holder) != destination || beam.emitter.mask_holder.glide_size != INFINITY)
+		Fail("Rebuild must publish the latest position without glide.")
 	var/turf/far_destination = get_step(get_step(destination, SOUTH), SOUTH)
 	wearer.forceMove(far_destination)
+	if(get_turf(beam.emitter.mask_holder) != far_destination)
+		Fail("Teleport must publish the destination immediately.")
+	SSlighting.fire(FALSE, TRUE)
 	if(get_turf(beam.emitter.mask_holder) != far_destination || beam.emitter.mask_holder.glide_size != INFINITY)
 		Fail("Long-distance movement must snap to the carrier.")
 /datum/unit_test/directional_beam_event_queue/Run()
@@ -195,4 +207,180 @@
 	wearer.setDir(EAST)
 	if(beam.datum_flags & DF_ISPROCESSING)
 		Fail("Old wearer must no longer wake a dropped light.")
+/datum/unit_test/directional_beam_shadow_queue/proc/shadow_signature(atom/movable/lighting_mask/mask)
+	var/list/values = list()
+	for(var/mutable_appearance/shadow as anything in mask.shadows)
+		var/matrix/shape = shadow.transform
+		values += list(list(shape.a, shape.b, shape.c, shape.d, shape.e, shape.f))
+	return json_encode(values)
+
+/datum/unit_test/directional_beam_shadow_queue/Run()
+	var/obj/item/device/flashlight/lamp = allocate(/obj/item/device/flashlight)
+	lamp.set_light_on(TRUE)
+	var/datum/component/directional_beam/beam = lamp.GetComponent(/datum/component/directional_beam)
+	var/atom/movable/lighting_mask/flashlight_60/mask = beam.emitter.our_mask
+	// Activation publishes initial shadows synchronously; enqueue this consumer check explicitly.
+	mask.queue_mask_update()
+	var/calculations_before = SSlighting.total_shadow_calculations
+	// Exercise the actual consumer, not a direct call to calculate_lighting_shadows.
+	SSlighting.fire(FALSE, TRUE)
+	if(mask.awaiting_update || (mask in SSlighting.mask_queue) || SSlighting.total_shadow_calculations <= calculations_before)
+		return Fail("Lighting subsystem must consume pending masks and calculate shadows.")
+	var/turf/origin = get_turf(lamp)
+	var/turf/obstacle_turf = get_step(origin, EAST)
+	var/obj/structure/obstacle = allocate(/obj/structure, obstacle_turf)
+	var/open_signature = shadow_signature(mask)
+	obstacle.set_opacity(TRUE)
+	if(!obstacle_turf.directional_opacity || !mask.awaiting_update)
+		Fail("Opaque obstacle must invalidate the subscribed light.")
+	SSlighting.fire(FALSE, TRUE)
+	if(mask.awaiting_update || !length(mask.shadows) || shadow_signature(mask) == open_signature)
+		Fail("Closing an obstacle must generate different shadow geometry.")
+	obstacle.set_opacity(FALSE)
+	SSlighting.fire(FALSE, TRUE)
+	if(mask.awaiting_update || shadow_signature(mask) != open_signature)
+		Fail("Reopening obstacle must restore original shadow geometry.")
+	// Cached math must match the original formula at multiple radii/headings.
+	for(var/test_radius in list(4, 10))
+		mask.radius = test_radius
+		for(var/angle in list(-180, -90, -0.25, 0, 45, 179.75, 270))
+			mask.current_angle = angle
+			for(var/turf/target in range(4, origin))
+				var/dx = (target.x - origin.x) / test_radius
+				var/dy = (target.y - origin.y) / test_radius
+				var/expected = 0
+				if(dx * dx + dy * dy < 1)
+					var/heading = angle + 180
+					expected = 2 * mask.beam_weight(dx * sin(heading) + dy * cos(heading), dx * cos(heading) - dy * sin(heading))
+				if(abs(mask.turf_light_factor(target) - expected) > 0.00001)
+					return Fail("Cached light factor differs from reference math.")
+	mask.radius = 10
+	beam.wake()
+	beam.process()
+	beam.wake_aim()
+	if(beam.full_update_pending)
+		Fail("Aim must not request full lifecycle processing.")
+	beam.wake()
+	beam.wake_aim()
+	if(!beam.full_update_pending)
+		Fail("Lifecycle event must dominate a coalesced aim event.")
+	mask.queue_mask_update()
+	lamp.set_light_on(FALSE)
+	SSlighting.fire(FALSE, TRUE)
+	if(mask in SSlighting.mask_queue)
+		Fail("Deleted lamp must not remain queued.")
+
+/datum/unit_test/directional_beam_benchmark/Run()
+	var/list/results = list()
+	for(var/count in list(1, 10, 30))
+		var/list/lamps = list()
+		var/list/masks = list()
+		var/list/sample = list("sources" = count)
+		for(var/index in 1 to count)
+			var/obj/item/device/flashlight/lamp = allocate(/obj/item/device/flashlight)
+			lamps += lamp
+			lamp.set_light_on(TRUE)
+			var/datum/component/directional_beam/beam = lamp.GetComponent(/datum/component/directional_beam)
+			masks += beam.emitter.our_mask
+		SSlighting.fire(FALSE, TRUE)
+		var/idle_pending = 0
+		for(var/obj/item/lamp as anything in lamps)
+			var/datum/component/directional_beam/beam = lamp.GetComponent(/datum/component/directional_beam)
+			if(beam.datum_flags & DF_ISPROCESSING)
+				idle_pending++
+		sample["idle_pending"] = idle_pending
+		if(idle_pending)
+			Fail("Idle benchmark lights must sleep.")
+		// Each timed batch is bounded and synchronous; milliseconds derive from tick usage.
+		var/start = TICK_USAGE
+		for(var/atom/movable/lighting_mask/mask as anything in masks)
+			mask.rotate(45)
+		sample["rotation_ms"] = TICK_USAGE_TO_MS(start)
+		start = TICK_USAGE
+		for(var/obj/item/lamp as anything in lamps)
+			lamp.forceMove(get_step(lamp, NORTH))
+		sample["movement_sync_ms"] = TICK_USAGE_TO_MS(start)
+		start = TICK_USAGE
+		for(var/atom/movable/lighting_mask/mask as anything in masks)
+			mask.calculate_lighting_shadows()
+		sample["movement_shadows_ms"] = TICK_USAGE_TO_MS(start)
+		var/obj/item/first_lamp = lamps[1]
+		var/obj/structure/obstacle = allocate(/obj/structure, get_step(first_lamp, EAST))
+		obstacle.set_opacity(TRUE)
+		start = TICK_USAGE
+		for(var/atom/movable/lighting_mask/mask as anything in masks)
+			mask.calculate_lighting_shadows()
+		sample["obstructed_shadows_ms"] = TICK_USAGE_TO_MS(start)
+		obstacle.set_opacity(FALSE)
+		for(var/obj/item/lamp as anything in lamps)
+			lamp.set_light_on(FALSE)
+		results += list(sample)
+		log_test("Directional lighting benchmark: [json_encode(sample)]")
+		stoplag()
+	// Three distinct live sources on one carrier: head, armor, hand.
+	var/mob/living/carbon/human/wearer = allocate(/mob/living/carbon/human)
+	var/obj/item/clothing/head/hardhat/helmet = allocate(/obj/item/clothing/head/hardhat, wearer)
+	var/obj/item/clothing/suit/marine/armor = allocate(/obj/item/clothing/suit/marine, wearer)
+	var/obj/item/device/flashlight/torch = allocate(/obj/item/device/flashlight)
+	wearer.head = helmet
+	wearer.wear_suit = armor
+	wearer.put_in_hands(torch)
+	var/list/carried_sources = list(helmet, armor, torch)
+	for(var/obj/item/source as anything in carried_sources)
+		source.set_light_on(TRUE)
+	SSlighting.fire(FALSE, TRUE)
+	var/start = TICK_USAGE
+	wearer.forceMove(get_step(wearer, NORTH))
+	var/list/carrier_sample = list("scenario" = "one_carrier_head_armor_hand", "sources" = 3, "movement_sync_ms" = TICK_USAGE_TO_MS(start))
+	SSlighting.fire(FALSE, TRUE)
+	for(var/obj/item/source as anything in carried_sources)
+		var/datum/component/directional_beam/beam = source.GetComponent(/datum/component/directional_beam)
+		if(!beam.emitter || get_turf(beam.emitter.mask_holder) != get_turf(wearer))
+			Fail("All three carried lamps must follow the carrier after rebuilding.")
+	start = TICK_USAGE
+	for(var/obj/item/source as anything in carried_sources)
+		var/datum/component/directional_beam/beam = source.GetComponent(/datum/component/directional_beam)
+		beam.emitter?.our_mask.calculate_lighting_shadows()
+	carrier_sample["movement_shadows_ms"] = TICK_USAGE_TO_MS(start)
+	results += list(carrier_sample)
+	for(var/obj/item/source as anything in carried_sources)
+		source.set_light_on(FALSE)
+	// Isolated test artifact, overwritten deliberately; no production logging.
+	if(fexists("data/directional_light_benchmark.json"))
+		fdel("data/directional_light_benchmark.json")
+	text2file(json_encode(results), "data/directional_light_benchmark.json")
+/datum/unit_test/directional_beam_shadow_priority/Run()
+	var/atom/movable/lighting_mask/flashlight_60/moving = allocate(/atom/movable/lighting_mask/flashlight_60)
+	var/atom/movable/lighting_mask/flashlight_60/ordinary = allocate(/atom/movable/lighting_mask/flashlight_60)
+	var/list/saved_queue = SSlighting.mask_queue.Copy()
+	var/saved_first = SSlighting.directional_first_batch
+	moving.movement_shadow_pending = TRUE
+	SSlighting.directional_first_batch = TRUE
+	SSlighting.mask_queue = list(ordinary, moving)
+	SSlighting.prioritize_directional_shadows()
+	if(length(SSlighting.mask_queue) != 2 || SSlighting.mask_queue[1] != moving)
+		Fail("Movement priority must preserve entries and lead the first batch.")
+	SSlighting.prioritize_directional_shadows()
+	if(length(SSlighting.mask_queue) != 2 || SSlighting.mask_queue[1] != ordinary)
+		Fail("Ordinary masks must lead the next batch to prevent starvation.")
+	SSlighting.mask_queue = saved_queue
+	SSlighting.directional_first_batch = saved_first
+
+/datum/unit_test/directional_beam_shadow_compositing/Run()
+	var/obj/item/device/flashlight/torch = allocate(/obj/item/device/flashlight)
+	var/obj/structure/obstacle = allocate(/obj/structure, get_step(torch, EAST))
+	obstacle.set_opacity(TRUE)
+	torch.set_light_on(TRUE)
+	var/datum/component/directional_beam/beam = torch.GetComponent(/datum/component/directional_beam)
+	var/atom/movable/lighting_mask/flashlight_60/mask = beam.emitter.our_mask
+	SSlighting.fire(FALSE, TRUE)
+	if(!length(mask.shadows) || length(mask.overlays) != length(mask.shadows))
+		Fail("Shadows must remain overlays of the filtered lighting mask.")
+	var/count_before = SSlighting.total_shadow_calculations
+	mask.rotate(45)
+	if(length(mask.overlays) != length(mask.shadows))
+		Fail("Rotation must restore all shadow overlays.")
+	if(SSlighting.total_shadow_calculations != count_before)
+		Fail("Rotation must not rebuild shadow geometry.")
+	torch.set_light_on(FALSE)
 #endif

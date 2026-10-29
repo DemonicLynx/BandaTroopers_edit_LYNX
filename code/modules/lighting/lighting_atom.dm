@@ -87,6 +87,7 @@
 	if(isnull(.))
 		return
 	recalculate_directional_opacity()
+	reconsider_directional_lights() // SS220 EDIT: full turf vs four borders can retain identical opacity bits.
 
 /atom/vv_edit_var(var_name, var_value)
 	switch(var_name)

@@ -1,20 +1,15 @@
-# TODO
-
-## Contract
+# Contract and fidelity
 | ID | Type | Requirement | Status |
 | --- | --- | --- | --- |
-| M1 | MUST | Replace the ambiguous "large work" threshold with an approved-plan rule that applies before product-code/docs edits of any size. | DONE |
-| M2 | MUST | Define one ordered workflow: read-only discovery -> task-state contract -> challenge -> implementation -> audit/sync -> verification/final. | DONE |
-| M3 | MUST | Separate planning task-state edits from later product-code/docs mutating edits. | DONE |
-| M4 | MUST | Make `PASS WITH RISKS`, `BLOCKED`, and incomplete `MUST/KEEP/REJECT` statuses block false "done". | DONE |
-| M5 | MUST | Normalize test guidance so verification cannot replace plan fidelity when the user prioritizes plan implementation. | DONE |
-| M6 | MUST | Make subagent usage explicit: only when the user and higher-priority instructions allow it; otherwise self-challenge. | DONE |
-| K1 | KEEP | Keep modular-first, `rg`, build-tooling, UTF-8, and non-destructive git rules. | DONE |
-| R1 | REJECT | Do not add another overlapping rule layer that keeps old contradictions alive. | DONE |
-| C1 | CHECK | Run docs-level checks for diff whitespace and mojibake. | DONE |
+| M1 | MUST | Separate static/base visibility and idempotent actual hybrid contributions; turf lifecycle integration | SOURCE DONE |
+| M2 | MUST | Correct off lifecycle, gun flag ordering, camera offsets/view invalidation | SOURCE DONE |
+| M3 | MUST | New directional masks hidden until initial shadow calculation completes | SOURCE DONE |
+| M4 | MUST | Directional full-tile/border geometry and opacity/move/turn invalidation | SOURCE DONE |
+| K1 | KEEP | Old compositor, movement timing, beam appearance, aim conventions and event queues | PRESERVED |
+| R1 | REJECT | No RenderLab rollout, global cache/tick change, fullbright, tests/compile/restart | RESPECTED |
+| C1 | CHECK | Diff, include/callsite/old-path audit and static review | DONE; runtime NOT RUN |
 
-## Forbidden Substitutions
-- Do not replace normalization with a small wording patch in only one file.
-- Do not keep "large task" as a gate for approved-plan contracts.
-- Do not make tests or compile checks the proof of plan fidelity.
-- Do not let old task-state about `outpost_radius` remain active for this docs task.
+Forbidden substitutions: hide all light permanently; treat all borders as full walls; use dependency membership as actual illumination; wrap native luminosity counters without replacing conflicting writers; faster polling in place of event invalidation; claim existing glide snap is fixed.
+Old paths: luminosity +=/-= contributor counter -> replaced; native static assignment based on hybrid_lights_affecting -> replaced; partial blockers in directional full-tile groups -> excluded and replaced with edge lines; initial unshadowed directional mask -> hidden until ready. Native full-wall grouping/compositor KEEP.
+
+Verification boundary: compilation, tests, server restart and client acceptance NOT RUN by user request. Two pre-existing test expectations were adapted to the new behavior without execution. GPU compositing, queued door-update latency, tile-edge artifacts, walking glide and 100-source CPU cost remain unverified; smooth movement and shared performance caches are deferred stages, not completed work.
